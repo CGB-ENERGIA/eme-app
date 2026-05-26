@@ -344,12 +344,14 @@ function stabilizeSamples(samples: GpsSample[], fallback: PhotoCoords | null): P
 
 /** Formata coordenada com precisão máxima útil do GPS (~1 cm). */
 export function formatGpsCoord(value: number): string {
-  return value.toFixed(7)
+  return value.toFixed(7).replace('.', ',')
 }
 
 /** Formata incerteza do GPS. */
 export function formatGpsAccuracy(accuracy: number): string {
-  return accuracy < 20 ? `±${accuracy.toFixed(1)}m` : `±${Math.round(accuracy)}m`
+  return accuracy < 20
+    ? `±${accuracy.toFixed(1).replace('.', ',')}m`
+    : `±${Math.round(accuracy)}m`
 }
 
 function pickBetterCoords(a: PhotoCoords | null, b: PhotoCoords | null): PhotoCoords | null {
