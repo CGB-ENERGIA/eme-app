@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Camera, Loader2, SwitchCamera } from 'lucide-react'
 import {
+  capturePreciseCoordinates,
   captureVideoFrame,
+  describeGpsStatus,
   getStampLines,
   isCameraSupported,
   processCameraPhoto,
@@ -36,6 +38,7 @@ export default function CameraCapture({
   const [now, setNow] = useState(() => new Date())
   const [loading, setLoading] = useState(true)
   const [capturing, setCapturing] = useState(false)
+  const [gpsMessage, setGpsMessage] = useState('Calibrando GPS...')
   const [error, setError] = useState<string | null>(null)
 
   const stopStream = useCallback(() => {
@@ -80,7 +83,10 @@ export default function CameraCapture({
 
     geoWatchRef.current?.stop()
     setCoords(null)
-    geoWatchRef.current = startCoordsWatcher(setCoords)
+    geoWatchRef.current = startCoordsWatcher((c) => {
+      setCoords(c)
+      setGpsMessage(describeGpsStatus(c).message)
+    })
     startCamera(facing)
 
     const clock = setInterval(() => setNow(new Date()), 1000)
@@ -92,16 +98,19 @@ export default function CameraCapture({
     }
   }, [open, facing, startCamera, stopStream, onClose, onFallback])
 
+  const gpsStatus = describeGpsStatus(coords)
   const overlayLines = getStampLines({ capturedAt: now, coords, incidente, equipe })
 
   const handleCapture = async () => {
     const video = videoRef.current
     if (!video || !video.videoWidth) return
     setCapturing(true)
+    setGpsMessage('Refinando GPS para captura...')
     try {
+      const finalCoords = await capturePreciseCoordinates(geoWatchRef.current, 18_000)
       const result = await captureVideoFrame(video, {
         capturedAt: new Date(),
-        coords: geoWatchRef.current?.getBest() ?? coords,
+        coords: finalCoords ?? coords,
         incidente,
         equipe,
       })
@@ -129,6 +138,20 @@ export default function CameraCapture({
           <X size={22} />
         </button>
         <span className="text-sm font-semibold">Câmera EME</span>
+        <span
+          className="text-[10px] font-semibold px-2 py-1 rounded-full max-w-[45%] truncate"
+          style={{
+            background:
+              gpsStatus.quality === 'excellent' || gpsStatus.quality === 'good'
+                ? 'rgba(34,197,94,0.25)'
+                : gpsStatus.quality === 'fair'
+                  ? 'rgba(234,179,8,0.25)'
+                  : 'rgba(255,255,255,0.12)',
+          }}
+          title={gpsMessage}
+        >
+          {capturing ? 'Refinando GPS...' : gpsMessage}
+        </span>
         <button
           type="button"
           onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')}
