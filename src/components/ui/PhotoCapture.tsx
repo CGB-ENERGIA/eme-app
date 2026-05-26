@@ -6,13 +6,15 @@ interface Props {
   label: string
   value: string | null
   onChange: (base64: string | null) => void
+  incidente?: string
+  equipe?: string
   small?: boolean
   required?: boolean
   showError?: boolean
   hint?: string
 }
 
-export default function PhotoCapture({ label, value, onChange, small, required, showError, hint }: Props) {
+export default function PhotoCapture({ label, value, onChange, incidente, equipe, small, required, showError, hint }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
@@ -28,7 +30,7 @@ export default function PhotoCapture({ label, value, onChange, small, required, 
     setProcessing(true)
     try {
       const result = fromCamera
-        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined)
+        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined, { incidente, equipe })
         : await processGalleryPhoto(file)
       onChange(result)
     } catch {

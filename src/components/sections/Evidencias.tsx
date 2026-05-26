@@ -46,12 +46,16 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
               label="Foto do Defeito"
               value={ev.foto1}
               onChange={(v) => atualizar(idx, { foto1: v })}
+              incidente={form.incidente}
+              equipe={form.equipe}
               small
             />
             <PhotoCapture
               label="Foto da Correção"
               value={ev.foto2}
               onChange={(v) => atualizar(idx, { foto2: v })}
+              incidente={form.incidente}
+              equipe={form.equipe}
               small
             />
           </div>
@@ -74,6 +78,8 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
               }, 300)
             }
           }}
+          incidente={form.incidente}
+          equipe={form.equipe}
           required
           showError={showErrors}
         />

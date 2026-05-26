@@ -43,7 +43,17 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
   )
 }
 
-function PhotoField({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+function incFromPdfName(name: string): string {
+  const m = name.match(/^EME_([^_.]+)/i)
+  return m?.[1] ?? ''
+}
+
+function PhotoField({ value, onChange, incidente, equipe }: {
+  value: string | null
+  onChange: (v: string | null) => void
+  incidente?: string
+  equipe?: string
+}) {
   const fileRef = useRef<HTMLInputElement>(null)
   const camRef  = useRef<HTMLInputElement>(null)
   const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
@@ -59,7 +69,7 @@ function PhotoField({ value, onChange }: { value: string | null; onChange: (v: s
     setProcessing(true)
     try {
       const result = fromCamera
-        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined)
+        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined, { incidente, equipe })
         : await processGalleryPhoto(file)
       onChange(result)
     } catch {
@@ -612,7 +622,8 @@ export default function Acionamento() {
                   </h2>
                 </div>
                 <PhotoField value={data.fotoAcionamento}
-                  onChange={(v) => set({ fotoAcionamento: v })} />
+                  onChange={(v) => set({ fotoAcionamento: v })}
+                  incidente={incFromPdfName(pdfName)} />
               </div>
 
               {/* Botão exportar */}

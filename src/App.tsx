@@ -3,6 +3,7 @@ import Lista from './pages/Lista'
 import Formulario from './pages/Formulario'
 import Acionamento from './pages/Acionamento'
 import { ThemeProvider } from './contexts/ThemeContext'
+import InstallPrompt from './components/ui/InstallPrompt'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
           <Route path="/formulario/:id" element={<Formulario />} />
           <Route path="/acionamento" element={<Acionamento />} />
         </Routes>
+        <InstallPrompt />
       </BrowserRouter>
     </ThemeProvider>
   )

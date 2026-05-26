@@ -4,9 +4,19 @@ export interface PhotoCoords {
   accuracy?: number
 }
 
-export interface PhotoMetadata {
+export interface PhotoStampContext {
+  incidente?: string
+  equipe?: string
+}
+
+export interface PhotoMetadata extends PhotoStampContext {
   capturedAt: Date
   coords: PhotoCoords | null
+}
+
+interface StampLine {
+  text: string
+  large?: boolean
 }
 
 function formatTimestamp(date: Date): string {
@@ -18,13 +28,6 @@ function formatTimestamp(date: Date): string {
     minute: '2-digit',
     second: '2-digit',
   })
-}
-
-function formatCoordinates(coords: PhotoCoords): string {
-  const lat = coords.latitude.toFixed(6)
-  const lon = coords.longitude.toFixed(6)
-  const acc = coords.accuracy != null ? ` (±${Math.round(coords.accuracy)}m)` : ''
-  return `${lat}, ${lon}${acc}`
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -46,8 +49,31 @@ export function fileToDataUrl(file: File): Promise<string> {
 }
 
 /** Obtém coordenadas GPS atuais (null se indisponível ou negado). */
-export function getCurrentCoordinates(): Promise<PhotoCoords | null> {
-  if (!navigator.geolocation) return Promise.resolve(null)
+export async function getCurrentCoordinates(): Promise<PhotoCoords | null> {
+  try {
+    const { Capacitor } = await import('@capacitor/core')
+    if (Capacitor.isNativePlatform()) {
+      const { Geolocation } = await import('@capacitor/geolocation')
+      const perm = await Geolocation.checkPermissions()
+      if (perm.location !== 'granted') {
+        const req = await Geolocation.requestPermissions()
+        if (req.location !== 'granted') return null
+      }
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 12_000,
+      })
+      return {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      }
+    }
+  } catch {
+    /* fallback para navegador */
+  }
+
+  if (!navigator.geolocation) return null
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
@@ -63,17 +89,28 @@ export function getCurrentCoordinates(): Promise<PhotoCoords | null> {
   })
 }
 
-function buildStampLines(meta: PhotoMetadata): string[] {
-  const lines = [formatTimestamp(meta.capturedAt)]
-  if (meta.coords) {
-    lines.push(formatCoordinates(meta.coords))
-  } else {
-    lines.push('GPS indisponível')
+function buildStampLines(meta: PhotoMetadata): StampLine[] {
+  const lines: StampLine[] = [{ text: formatTimestamp(meta.capturedAt) }]
+
+  if (meta.incidente?.trim()) {
+    lines.push({ text: `INC - ${meta.incidente.trim()}` })
   }
+  if (meta.equipe?.trim()) {
+    lines.push({ text: `Equipe: ${meta.equipe.trim()}` })
+  }
+
+  if (meta.coords) {
+    const acc = meta.coords.accuracy != null ? ` (±${Math.round(meta.coords.accuracy)}m)` : ''
+    lines.push({ text: `Lat: ${meta.coords.latitude.toFixed(6)}`, large: true })
+    lines.push({ text: `Lon: ${meta.coords.longitude.toFixed(6)}${acc}`, large: true })
+  } else {
+    lines.push({ text: 'GPS indisponível', large: true })
+  }
+
   return lines
 }
 
-/** Desenha data/hora e coordenadas no canto inferior esquerdo da imagem. */
+/** Desenha data/hora, INC, equipe e coordenadas na imagem. */
 export async function stampPhotoOnImage(
   dataUrl: string,
   meta: PhotoMetadata,
@@ -90,54 +127,63 @@ export async function stampPhotoOnImage(
 
   const lines = buildStampLines(meta)
   const scale = Math.max(canvas.width, canvas.height) / 1080
-  const fontSize = Math.round(Math.max(14, Math.min(44, 20 * scale)))
-  const lineGap = Math.round(fontSize * 0.35)
-  const padding = Math.round(Math.max(10, 14 * scale))
-  const boxPad = Math.round(fontSize * 0.35)
+  const baseFont = Math.round(Math.max(18, Math.min(52, 24 * scale)))
+  const largeFont = Math.round(baseFont * 1.45)
+  const lineGap = Math.round(baseFont * 0.28)
+  const largeGap = Math.round(largeFont * 0.22)
+  const padding = Math.round(Math.max(12, 16 * scale))
+  const boxPad = Math.round(baseFont * 0.4)
 
-  ctx.font = `600 ${fontSize}px Inter, system-ui, -apple-system, sans-serif`
+  const measureLine = (line: StampLine) => {
+    const size = line.large ? largeFont : baseFont
+    ctx.font = `700 ${size}px Inter, system-ui, -apple-system, sans-serif`
+    return { width: ctx.measureText(line.text).width, height: size, size, large: line.large }
+  }
 
-  const lineWidths = lines.map(l => ctx.measureText(l).width)
-  const boxW = Math.max(...lineWidths) + boxPad * 2
-  const boxH = lines.length * fontSize + (lines.length - 1) * lineGap + boxPad * 2
+  const measured = lines.map(measureLine)
+  const boxW = Math.max(...measured.map(m => m.width)) + boxPad * 2
+  let boxH = boxPad * 2
+  measured.forEach((m, i) => {
+    boxH += m.height
+    if (i < measured.length - 1) boxH += m.large || measured[i + 1]?.large ? largeGap : lineGap
+  })
+
   const x = padding
   const y = canvas.height - padding - boxH
 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.62)'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.68)'
   ctx.beginPath()
-  const r = Math.round(4 * scale)
+  const r = Math.round(6 * scale)
   ctx.roundRect(x, y, boxW, boxH, r)
   ctx.fill()
 
   ctx.fillStyle = '#ffffff'
   ctx.textBaseline = 'top'
+  let cursorY = y + boxPad
   lines.forEach((line, i) => {
-    const lineY = y + boxPad + i * (fontSize + lineGap)
-    ctx.fillText(line, x + boxPad, lineY)
+    const m = measured[i]
+    ctx.font = `700 ${m.size}px Inter, system-ui, -apple-system, sans-serif`
+    ctx.fillText(line.text, x + boxPad, cursorY)
+    if (i < lines.length - 1) {
+      cursorY += m.height + (line.large || lines[i + 1]?.large ? largeGap : lineGap)
+    }
   })
 
   return canvas.toDataURL('image/jpeg', 0.92)
 }
 
-/** @deprecated use stampPhotoOnImage */
-export async function stampTimestampOnImage(
-  dataUrl: string,
-  capturedAt: Date = new Date(),
-): Promise<string> {
-  return stampPhotoOnImage(dataUrl, { capturedAt, coords: null })
-}
-
-/** Processa foto da câmera com carimbo de data/hora e coordenadas. */
+/** Processa foto da câmera com carimbo completo. */
 export async function processCameraPhoto(
   file: File,
   prefetchedCoords?: Promise<PhotoCoords | null>,
+  context?: PhotoStampContext,
 ): Promise<string> {
   const [dataUrl, coords] = await Promise.all([
     fileToDataUrl(file),
     prefetchedCoords ?? getCurrentCoordinates(),
   ])
   const capturedAt = new Date(file.lastModified || Date.now())
-  return stampPhotoOnImage(dataUrl, { capturedAt, coords })
+  return stampPhotoOnImage(dataUrl, { capturedAt, coords, ...context })
 }
 
 /** Processa foto da galeria sem carimbo. */

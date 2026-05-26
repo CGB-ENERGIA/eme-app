@@ -17,6 +17,8 @@ export default function FotosServico({ form, onChange, showErrors }: Props) {
         label="1. Chegada da equipe na base"
         value={form.fotoChegadaBase}
         onChange={(v) => onChange({ fotoChegadaBase: v })}
+        incidente={form.incidente}
+        equipe={form.equipe}
         required
         showError={showErrors}
       />
@@ -24,6 +26,8 @@ export default function FotosServico({ form, onChange, showErrors }: Props) {
         label="2. Chegada da equipe no local de serviço"
         value={form.fotoChegadaServico}
         onChange={(v) => onChange({ fotoChegadaServico: v })}
+        incidente={form.incidente}
+        equipe={form.equipe}
         required
         showError={showErrors}
       />
