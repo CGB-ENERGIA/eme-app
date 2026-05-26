@@ -12,6 +12,7 @@ interface Props {
 export default function FotosServico({ form, onChange, showErrors }: Props) {
   return (
     <SectionCard title="Fotos do Serviço" icon={<ImageIcon size={16} />}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <PhotoCapture
         label="1. Chegada da equipe na base"
         value={form.fotoChegadaBase}
@@ -26,6 +27,7 @@ export default function FotosServico({ form, onChange, showErrors }: Props) {
         required
         showError={showErrors}
       />
+      </div>
     </SectionCard>
   )
 }

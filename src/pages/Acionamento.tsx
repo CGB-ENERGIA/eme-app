@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, FileDown, Loader2, Sun, Moon, X, Camera, ZoomIn, ZoomOut, Save, CheckCircle, Trash2 } from 'lucide-react'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { useTheme } from '../contexts/ThemeContext'
+import AppShell from '../components/layout/AppShell'
 import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento } from '../store/db'
 import { type AcionamentoData, emptyAcionamento } from '../types/acionamento'
+import { processCameraPhoto, processGalleryPhoto, getCurrentCoordinates, type PhotoCoords } from '../utils/stampImage'
 
 // ── helpers ──────────────────────────────────────────────────
 function fmtDT(v: string) {
@@ -44,12 +46,30 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
 function PhotoField({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const camRef  = useRef<HTMLInputElement>(null)
+  const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
+  const [processing, setProcessing] = useState(false)
 
-  const handleFile = (file: File | null) => {
+  const openCamera = () => {
+    geoPrefetch.current = getCurrentCoordinates()
+    camRef.current?.click()
+  }
+
+  const handleFile = async (file: File | null, fromCamera: boolean) => {
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (e) => onChange(e.target?.result as string)
-    reader.readAsDataURL(file)
+    setProcessing(true)
+    try {
+      const result = fromCamera
+        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined)
+        : await processGalleryPhoto(file)
+      onChange(result)
+    } catch {
+      onChange(null)
+    } finally {
+      geoPrefetch.current = null
+      setProcessing(false)
+      if (fromCamera && camRef.current) camRef.current.value = ''
+      if (!fromCamera && fileRef.current) fileRef.current.value = ''
+    }
   }
 
   return (
@@ -64,24 +84,34 @@ function PhotoField({ value, onChange }: { value: string | null; onChange: (v: s
         </div>
       ) : (
         <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 h-44 flex flex-col items-center justify-center gap-3">
-          <div className="flex gap-5">
-            <button type="button" onClick={() => camRef.current?.click()}
-              className="flex flex-col items-center gap-1.5" style={{ color: '#9B003C' }}>
-              <div className="rounded-xl p-3" style={{ background: '#FFF0F4' }}><Camera size={22} /></div>
-              <span className="text-xs font-semibold">Câmera</span>
-            </button>
-            <button type="button" onClick={() => fileRef.current?.click()}
-              className="flex flex-col items-center gap-1.5 text-slate-500">
-              <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-3"><Upload size={22} /></div>
-              <span className="text-xs font-semibold">Galeria</span>
-            </button>
-          </div>
+          {processing ? (
+            <>
+              <Loader2 size={28} className="animate-spin" style={{ color: '#C0014A' }} />
+              <span className="text-xs font-medium text-slate-500">Processando foto...</span>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-5">
+                <button type="button" onClick={openCamera}
+                  className="flex flex-col items-center gap-1.5" style={{ color: '#9B003C' }}>
+                  <div className="rounded-xl p-3" style={{ background: '#FFF0F4' }}><Camera size={22} /></div>
+                  <span className="text-xs font-semibold">Câmera</span>
+                </button>
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="flex flex-col items-center gap-1.5 text-slate-500">
+                  <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-3"><Upload size={22} /></div>
+                  <span className="text-xs font-semibold">Galeria</span>
+                </button>
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium">Câmera inclui data/hora e GPS automaticamente</span>
+            </>
+          )}
         </div>
       )}
       <input ref={camRef}  type="file" accept="image/*" capture="environment" className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null, true)} />
       <input ref={fileRef} type="file" accept="image/*" className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null, false)} />
     </>
   )
 }
@@ -297,12 +327,13 @@ export default function Acionamento() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <AppShell page="acionamento">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 flex-1 flex flex-col">
 
       {/* Header */}
       <div className="sticky top-0 z-40 text-white shadow-lg"
         style={{ background: 'linear-gradient(135deg, #7B0029 0%, #C0014A 100%)' }}>
-        <div className="px-4 py-3 flex items-center gap-3">
+        <div className="px-4 lg:px-8 py-3 flex items-center gap-3 max-w-7xl mx-auto w-full">
           <button onClick={() => navigate('/')}
             className="p-1.5 -ml-1.5 rounded-xl"
             style={{ background: 'rgba(255,255,255,0.12)' }}>
@@ -326,7 +357,7 @@ export default function Acionamento() {
               </span>
             )}
 
-            <button onClick={toggle} className="p-1.5 rounded-xl"
+            <button onClick={toggle} className="lg:hidden p-1.5 rounded-xl"
               style={{ background: 'rgba(255,255,255,0.12)' }}>
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -350,16 +381,16 @@ export default function Acionamento() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 pt-5 pb-10">
+      <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 lg:px-8 pt-5 pb-10 w-full flex-1">
 
         {/* ── Sem PDF: área de importação ── */}
         {!pdfBytes && (
-          <div className="space-y-5">
+          <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
             <div
               onDrop={onDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => pdfInputRef.current?.click()}
-              className="mt-8 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-4 py-16 cursor-pointer transition hover:border-pink-400"
+              className="mt-8 lg:mt-2 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-4 py-16 lg:py-24 cursor-pointer transition hover:border-pink-400"
               style={{ borderColor: '#E2C0CC' }}
             >
               {loadingPdf ? (
@@ -490,7 +521,7 @@ export default function Acionamento() {
             </div>
 
             {/* Coluna direita: formulário de acionamento */}
-            <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+            <div className="w-full lg:w-96 xl:w-[420px] flex-shrink-0 space-y-4">
 
               {/* Card: Identificação */}
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
@@ -596,5 +627,6 @@ export default function Acionamento() {
         )}
       </div>
     </div>
+    </AppShell>
   )
 }

@@ -7,27 +7,8 @@ import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
 import { exportarPDF } from '../utils/exportPDF'
 import { useTheme } from '../contexts/ThemeContext'
-
-function LogoCGB({ size = 36 }: { size?: number }) {
-  const c = 50
-  const N = [c, 2], E = [98, c], S = [c, 98], W = [2, c]
-  const NE = [74, 26], SE = [74, 74], SW = [26, 74], NW = [26, 26]
-  const pt = (coords: number[][]) => coords.map(p => p.join(',')).join(' ')
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points={pt([N, NE, [c,c]])}  fill="#BE0047" />
-      <polygon points={pt([NE, E, [c,c]])}  fill="#8A0030" />
-      <polygon points={pt([E, SE, [c,c]])}  fill="#BE0047" />
-      <polygon points={pt([SE, S, [c,c]])}  fill="#8A0030" />
-      <polygon points={pt([S, SW, [c,c]])}  fill="#BE0047" />
-      <polygon points={pt([SW, W, [c,c]])}  fill="#8A0030" />
-      <polygon points={pt([W, NW, [c,c]])}  fill="#BE0047" />
-      <polygon points={pt([NW, N, [c,c]])}  fill="#8A0030" />
-      <polygon points={pt([[c,34],[66,c],[c,66],[34,c]])} fill="white" />
-    </svg>
-  )
-}
+import AppShell from '../components/layout/AppShell'
+import LogoCGB from '../components/ui/LogoCGB'
 
 export default function Lista() {
   const navigate = useNavigate()
@@ -82,57 +63,60 @@ export default function Lista() {
   const rascunhos   = formularios.filter(f => f.status === 'rascunho').length
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
+    <AppShell page="lista">
 
       {/* ── HERO HEADER ── */}
-      <div className="relative overflow-hidden px-4 pt-14 pb-8"
+      <div className="relative overflow-hidden px-4 pt-14 pb-8 lg:pt-8 lg:pb-10 lg:px-8"
         style={{ background: 'linear-gradient(135deg, #6B0028 0%, #9B003C 45%, #C0014A 100%)' }}>
 
         <div className="absolute -top-20 -right-20 w-72 h-72 rotate-45 rounded-3xl bg-white/5" />
         <div className="absolute -bottom-16 -left-16 w-56 h-56 rotate-45 rounded-2xl bg-white/5" />
-        <div className="absolute top-6 right-10 w-16 h-16 rotate-45 rounded-xl bg-white/10" />
-        <div className="absolute bottom-8 right-32 w-8 h-8 rotate-45 rounded-md bg-white/10" />
+        <div className="absolute top-6 right-10 w-16 h-16 rotate-45 rounded-xl bg-white/10 hidden lg:block" />
+        <div className="absolute bottom-8 right-32 w-8 h-8 rotate-45 rounded-md bg-white/10 hidden lg:block" />
 
-        <div className="relative max-w-lg mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-white rounded-2xl p-2 shadow-lg shadow-black/20">
-                <LogoCGB size={34} />
+        <div className="relative max-w-lg mx-auto lg:max-w-6xl lg:flex lg:items-center lg:justify-between lg:gap-12">
+          <div className="lg:flex-1">
+            <div className="flex items-center justify-between mb-6 lg:mb-4">
+              <div className="flex items-center gap-3 lg:hidden">
+                <div className="bg-white rounded-2xl p-2 shadow-lg shadow-black/20">
+                  <LogoCGB size={34} />
+                </div>
+                <div>
+                  <p className="text-white font-black text-xl leading-none tracking-tight">CGB</p>
+                  <p className="text-pink-200 text-xs font-semibold tracking-widest uppercase">Engenharia</p>
+                </div>
               </div>
-              <div>
-                <p className="text-white font-black text-xl leading-none tracking-tight">CGB</p>
-                <p className="text-pink-200 text-xs font-semibold tracking-widest uppercase">Engenharia</p>
-              </div>
+
+              {/* Toggle dark/light — mobile only (desktop: sidebar) */}
+              <button
+                onClick={toggle}
+                className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
+                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              >
+                {theme === 'dark'
+                  ? <><Sun size={14} /> Claro</>
+                  : <><Moon size={14} /> Escuro</>}
+              </button>
             </div>
 
-            {/* Toggle dark/light */}
-            <button
-              onClick={toggle}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95"
-              style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
-              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-            >
-              {theme === 'dark'
-                ? <><Sun size={14} /> Claro</>
-                : <><Moon size={14} /> Escuro</>}
-            </button>
+            <h1 className="text-white font-black text-3xl lg:text-4xl leading-tight mb-1">
+              <span className="lg:hidden">Atendimento<br />Emergencial</span>
+              <span className="hidden lg:inline">Atendimento Emergencial</span>
+            </h1>
+            <p className="text-pink-200 text-sm lg:text-base mb-7 lg:mb-0">
+              Formulários de campo — offline
+            </p>
           </div>
 
-          <h1 className="text-white font-black text-3xl leading-tight mb-1">
-            Atendimento<br />Emergencial
-          </h1>
-          <p className="text-pink-200 text-sm mb-7">
-            Formulários de campo — offline
-          </p>
-
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 lg:gap-4 lg:w-96 lg:flex-shrink-0">
             {[
               { label: 'Total',       value: formularios.length },
               { label: 'Rascunhos',   value: rascunhos },
               { label: 'Finalizados', value: finalizados },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-3 text-center border border-white/15">
-                <p className="text-white font-black text-2xl leading-none">{carregando ? '—' : value}</p>
+              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-3 lg:py-4 text-center border border-white/15">
+                <p className="text-white font-black text-2xl lg:text-3xl leading-none">{carregando ? '—' : value}</p>
                 <p className="text-pink-200 text-xs mt-1 font-medium">{label}</p>
               </div>
             ))}
@@ -141,12 +125,12 @@ export default function Lista() {
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div className="max-w-lg mx-auto px-4 pb-24">
+      <div className="max-w-lg mx-auto lg:max-w-6xl px-4 lg:px-8 pb-24 lg:pb-10">
 
-        <div className="flex gap-3 mt-5">
+        <div className="flex flex-col sm:flex-row gap-3 mt-5 lg:mt-8">
           <button
             onClick={novoFormulario}
-            className="flex-1 flex items-center justify-center gap-2 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #9B003C, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.35)' }}
           >
             <Plus size={20} strokeWidth={2.5} />
@@ -154,7 +138,7 @@ export default function Lista() {
           </button>
           <button
             onClick={() => navigate('/acionamento')}
-            className="flex items-center justify-center gap-2 px-5 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-5 sm:flex-none text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
             <Zap size={20} strokeWidth={2.5} />
@@ -168,7 +152,7 @@ export default function Lista() {
           </p>
         )}
 
-        <div className="space-y-3 mt-3">
+        <div className="space-y-3 mt-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
           {carregando && (
             <div className="text-center py-16 text-slate-400">
               <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full mx-auto mb-3"
@@ -207,7 +191,7 @@ export default function Lista() {
               {/* Corpo clicável */}
               <button
                 onClick={() => navigate(`/formulario/${f.id}`)}
-                className="w-full text-left px-4 pt-3 pb-3 active:bg-slate-50 dark:active:bg-slate-700 transition-colors"
+                className="w-full text-left px-4 pt-3 pb-3 active:bg-slate-50 dark:active:bg-slate-700 lg:hover:bg-slate-50 dark:lg:hover:bg-slate-700/50 transition-colors"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -320,7 +304,7 @@ export default function Lista() {
       {/* ── MODAL EXCLUIR ── */}
       {excluindo && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-4"
           onClick={() => setExcluindo(null)}
         >
           <div
@@ -353,6 +337,6 @@ export default function Lista() {
           </div>
         </div>
       )}
-    </div>
+    </AppShell>
   )
 }

@@ -12,6 +12,7 @@ import Observacao from '../components/sections/Observacao'
 import { exportarPDF } from '../utils/exportPDF'
 import { exportarExcel } from '../utils/exportExcel'
 import { useTheme } from '../contexts/ThemeContext'
+import AppShell from '../components/layout/AppShell'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -134,6 +135,22 @@ export default function Formulario() {
     try { await exportarExcel(form) } finally { setExportando(null) }
   }
 
+  const irParaStep = (step: number) => {
+    if (step > currentStep && form) {
+      for (let i = currentStep; i < step; i++) {
+        const erros = validarStep(i, form)
+        if (erros.length > 0) {
+          setCurrentStep(i)
+          setStepErrors(erros)
+          return
+        }
+      }
+    }
+    setStepErrors([])
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setCurrentStep(step)
+  }
+
   if (!form) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -146,14 +163,15 @@ export default function Formulario() {
   const isLastStep = currentStep === STEPS.length - 1
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 transition-colors duration-300">
+    <AppShell page="formulario">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 lg:pb-8 transition-colors duration-300 flex flex-col flex-1">
 
       {/* Header */}
       <div
         className="sticky top-0 z-40 text-white shadow-lg"
         style={{ background: 'linear-gradient(135deg, #7B0029 0%, #C0014A 100%)' }}
       >
-        <div className="px-4 py-3 flex items-center gap-3">
+        <div className="px-4 lg:px-8 py-3 flex items-center gap-3 max-w-6xl mx-auto w-full">
           <button
             onClick={() => navigate('/')}
             className="p-1.5 -ml-1.5 rounded-xl transition"
@@ -174,7 +192,7 @@ export default function Formulario() {
 
             <button
               onClick={toggle}
-              className="p-1.5 rounded-xl transition"
+              className="lg:hidden p-1.5 rounded-xl transition"
               style={{ background: 'rgba(255,255,255,0.12)' }}
               title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
@@ -208,8 +226,8 @@ export default function Formulario() {
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="px-4 pb-3">
+        {/* Progress bar — mobile */}
+        <div className="px-4 pb-3 lg:hidden max-w-6xl mx-auto w-full">
           {/* Step dots */}
           <div className="flex items-center gap-1 mb-2">
             {STEPS.map((_step, i) => (
@@ -237,8 +255,36 @@ export default function Formulario() {
         </div>
       </div>
 
-      {/* Step content */}
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+      {/* Layout desktop: stepper lateral + conteúdo */}
+      <div className="flex flex-1 max-w-6xl mx-auto w-full lg:px-8 lg:gap-8 lg:pt-6">
+
+        {/* Stepper lateral — desktop */}
+        <aside className="hidden lg:block w-56 flex-shrink-0">
+          <nav className="sticky top-24 space-y-1">
+            {STEPS.map((step, i) => (
+              <button
+                key={step.label}
+                type="button"
+                onClick={() => irParaStep(i)}
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  i === currentStep
+                    ? 'text-white shadow-md'
+                    : i < currentStep
+                      ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                style={i === currentStep ? { background: 'linear-gradient(135deg, #7B0029, #C0014A)' } : undefined}
+              >
+                <span className="text-xs opacity-70 block mb-0.5">Passo {i + 1}</span>
+                {step.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <div className="flex-1 min-w-0 flex flex-col pb-32 lg:pb-8">
+          {/* Step content */}
+          <div className="flex-1 max-w-lg lg:max-w-none mx-auto px-4 lg:px-0 pt-4 space-y-4 w-full">
 
         {currentStep === 0 && (
           <DadosIncidente form={form} onChange={onChange} showErrors={stepErrors.length > 0} />
@@ -275,11 +321,11 @@ export default function Formulario() {
             </p>
           </div>
         )}
-      </div>
+          </div>
 
-      {/* Bottom navigation bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 p-4 z-30">
-        <div className="max-w-lg mx-auto flex gap-3">
+          {/* Navegação — mobile fixa / desktop no rodapé do conteúdo */}
+          <div className="fixed lg:static bottom-0 left-0 right-0 lg:mt-6 bg-white dark:bg-slate-900 border-t lg:border border-slate-100 dark:border-slate-700 p-4 lg:rounded-2xl lg:shadow-sm z-30 mx-4 lg:mx-0 mb-0 lg:mb-0">
+            <div className="max-w-lg lg:max-w-none mx-auto flex gap-3">
 
           {currentStep === 0 ? (
             <button
@@ -304,7 +350,7 @@ export default function Formulario() {
           {isLastStep ? (
             <button
               onClick={finalizar}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition hover:brightness-110"
               style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 4px 16px rgba(160,0,60,0.3)' }}
             >
               <CheckCircle size={18} />
@@ -313,19 +359,23 @@ export default function Formulario() {
           ) : (
             <button
               onClick={avancar}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition hover:brightness-110"
               style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 4px 16px rgba(160,0,60,0.3)' }}
             >
               Próximo
               <ArrowRight size={18} />
             </button>
-          )}
+            )}
+            </div>
+          </div>
         </div>
+
       </div>
 
       {showExportMenu && (
         <div className="fixed inset-0 z-30" onClick={() => setShowExportMenu(false)} />
       )}
     </div>
+    </AppShell>
   )
 }

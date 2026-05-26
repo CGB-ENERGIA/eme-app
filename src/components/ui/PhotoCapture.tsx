@@ -1,5 +1,6 @@
-import { useRef } from 'react'
-import { Camera, Upload, X } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import { processCameraPhoto, processGalleryPhoto, getCurrentCoordinates, type PhotoCoords } from '../../utils/stampImage'
 
 interface Props {
   label: string
@@ -14,12 +15,30 @@ interface Props {
 export default function PhotoCapture({ label, value, onChange, small, required, showError, hint }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
+  const [processing, setProcessing] = useState(false)
 
-  const handleFile = (file: File | null) => {
+  const openCamera = () => {
+    geoPrefetch.current = getCurrentCoordinates()
+    cameraRef.current?.click()
+  }
+
+  const handleFile = async (file: File | null, fromCamera: boolean) => {
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (e) => onChange(e.target?.result as string)
-    reader.readAsDataURL(file)
+    setProcessing(true)
+    try {
+      const result = fromCamera
+        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined)
+        : await processGalleryPhoto(file)
+      onChange(result)
+    } catch {
+      onChange(null)
+    } finally {
+      geoPrefetch.current = null
+      setProcessing(false)
+      if (fromCamera && cameraRef.current) cameraRef.current.value = ''
+      if (!fromCamera && fileRef.current) fileRef.current.value = ''
+    }
   }
 
   const hasError = showError && required && !value
@@ -41,7 +60,7 @@ export default function PhotoCapture({ label, value, onChange, small, required, 
       </div>
 
       {value ? (
-        <div className={`relative rounded-xl overflow-hidden border bg-slate-50 dark:bg-slate-700 ${small ? 'h-32' : 'h-44'} ${hasError ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'}`}>
+        <div className={`relative rounded-xl overflow-hidden border bg-slate-50 dark:bg-slate-700 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${hasError ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'}`}>
           <img src={value} alt={label} className="w-full h-full object-cover" />
           <button
             type="button"
@@ -52,44 +71,56 @@ export default function PhotoCapture({ label, value, onChange, small, required, 
           </button>
         </div>
       ) : (
-        <div className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 ${small ? 'h-32' : 'h-44'} ${
+        <div className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${
           hasError
             ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
             : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700'
         }`}>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => cameraRef.current?.click()}
-              className="flex flex-col items-center gap-1 transition"
-              style={{ color: '#9B003C' }}
-            >
-              <div className="rounded-xl p-2.5" style={{ background: '#FFF0F4' }}>
-                <Camera size={20} />
+          {processing ? (
+            <>
+              <Loader2 size={28} className="animate-spin" style={{ color: '#C0014A' }} />
+              <span className="text-xs font-medium text-slate-500">Processando foto...</span>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className="flex flex-col items-center gap-1 transition"
+                  style={{ color: '#9B003C' }}
+                >
+                  <div className="rounded-xl p-2.5" style={{ background: '#FFF0F4' }}>
+                    <Camera size={20} />
+                  </div>
+                  <span className="text-xs font-medium">Câmera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                >
+                  <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-2.5">
+                    <Upload size={20} />
+                  </div>
+                  <span className="text-xs font-medium">Galeria</span>
+                </button>
               </div>
-              <span className="text-xs font-medium">Câmera</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
-            >
-              <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-2.5">
-                <Upload size={20} />
-              </div>
-              <span className="text-xs font-medium">Galeria</span>
-            </button>
-          </div>
-          {hasError && (
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                Câmera inclui data/hora e GPS automaticamente
+              </span>
+            </>
+          )}
+          {hasError && !processing && (
             <span className="text-xs text-red-500 font-medium">Foto obrigatória</span>
           )}
         </div>
       )}
 
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null, true)} />
       <input ref={fileRef} type="file" accept="image/*" className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null, false)} />
     </div>
   )
 }

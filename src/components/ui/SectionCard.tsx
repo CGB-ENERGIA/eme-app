@@ -16,7 +16,7 @@ export default function SectionCard({ title, icon, children }: Props) {
         {icon && <span className="opacity-80">{icon}</span>}
         <h2 className="text-sm font-semibold tracking-wide uppercase">{title}</h2>
       </div>
-      <div className="p-4 space-y-3">{children}</div>
+      <div className="p-4 lg:p-5 space-y-3 lg:space-y-4">{children}</div>
     </div>
   )
 }

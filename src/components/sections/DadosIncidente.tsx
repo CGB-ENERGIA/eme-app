@@ -39,7 +39,7 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           onChange={(e) => onChange({ municipio: e.target.value })}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Field
           label="Data Início"
           type="date"
@@ -56,23 +56,23 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           value={form.dataFinal}
           onChange={(e) => onChange({ dataFinal: e.target.value })}
         />
+        <Field
+          label="Equipe"
+          required
+          showError={showErrors}
+          placeholder="Prefixo da equipe"
+          value={form.equipe}
+          onChange={(e) => onChange({ equipe: e.target.value })}
+        />
+        <Field
+          label="Supervisor"
+          required
+          showError={showErrors}
+          placeholder="Nome do supervisor"
+          value={form.supervisor}
+          onChange={(e) => onChange({ supervisor: e.target.value })}
+        />
       </div>
-      <Field
-        label="Equipe"
-        required
-        showError={showErrors}
-        placeholder="Prefixo da equipe"
-        value={form.equipe}
-        onChange={(e) => onChange({ equipe: e.target.value })}
-      />
-      <Field
-        label="Supervisor"
-        required
-        showError={showErrors}
-        placeholder="Nome do supervisor"
-        value={form.supervisor}
-        onChange={(e) => onChange({ supervisor: e.target.value })}
-      />
     </SectionCard>
   )
 }

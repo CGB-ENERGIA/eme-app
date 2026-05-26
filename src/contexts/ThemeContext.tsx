@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-
-type Theme = 'light' | 'dark'
+import { applyTheme, getStoredTheme, type Theme } from '../utils/theme'
 
 interface ThemeContextValue {
   theme: Theme
@@ -11,20 +10,28 @@ const ThemeContext = createContext<ThemeContextValue>({ theme: 'light', toggle: 
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) ?? 'light'
+    const stored = getStoredTheme()
+    applyTheme(stored)
+    return stored
   })
 
   useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-    localStorage.setItem('theme', theme)
+    applyTheme(theme)
   }, [theme])
 
-  const toggle = () => setTheme(t => t === 'light' ? 'dark' : 'light')
+  // Sincroniza se o tema mudar em outra aba
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'eme-theme' && e.key !== 'theme') return
+      const next = getStoredTheme()
+      setTheme(next)
+      applyTheme(next)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
+  const toggle = () => setTheme(t => (t === 'light' ? 'dark' : 'light'))
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>
