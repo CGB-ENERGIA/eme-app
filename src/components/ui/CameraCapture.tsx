@@ -161,13 +161,13 @@ export default function CameraCapture({
               {overlayLines.map((line, i) => (
                 <p
                   key={i}
-                  className="text-white font-bold leading-tight break-words"
+                  className={`text-white font-bold leading-snug break-words ${line.coords ? 'font-mono tracking-wide' : ''}`}
                   style={{
                     fontSize: line.large
-                      ? 'clamp(11px, 3.2vw, 16px)'
-                      : 'clamp(12px, 3.6vw, 18px)',
+                      ? 'clamp(15px, 4.6vw, 23px)'
+                      : 'clamp(16px, 5.2vw, 26px)',
                     textShadow:
-                      '0 0 4px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.95), 1px 0 3px rgba(0,0,0,0.95), -1px 0 3px rgba(0,0,0,0.95)',
+                      '0 2px 8px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.85), 1px 2px 3px rgba(0,0,0,1), -1px -1px 2px rgba(0,0,0,0.9)',
                   }}
                 >
                   {line.text}

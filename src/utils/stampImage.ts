@@ -18,6 +18,7 @@ export interface PhotoMetadata extends PhotoStampContext {
 interface StampLine {
   text: string
   large?: boolean
+  coords?: boolean
 }
 
 export function formatTimestamp(date: Date): string {
@@ -46,8 +47,14 @@ export function getStampLines(meta: PhotoMetadata): StampLine[] {
     const acc =
       meta.coords.accuracy != null ? ` ${formatGpsAccuracy(meta.coords.accuracy)}` : ''
     lines.push({
-      text: `Lat: ${formatGpsCoord(meta.coords.latitude)}  Lon: ${formatGpsCoord(meta.coords.longitude)}${acc}`,
+      text: `Lat: ${formatGpsCoord(meta.coords.latitude)}`,
       large: true,
+      coords: true,
+    })
+    lines.push({
+      text: `Lon: ${formatGpsCoord(meta.coords.longitude)}${acc}`,
+      large: true,
+      coords: true,
     })
   } else {
     lines.push({ text: 'GPS indisponível', large: true })
@@ -57,16 +64,21 @@ export function getStampLines(meta: PhotoMetadata): StampLine[] {
 }
 
 const STAMP_FONT = '700 %dpx Inter, system-ui, -apple-system, sans-serif'
+const STAMP_FONT_COORDS =
+  '700 %dpx "SF Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, monospace'
+
+function stampFont(size: number, coords?: boolean) {
+  return (coords ? STAMP_FONT_COORDS : STAMP_FONT).replace('%d', String(size))
+}
 
 function stampMetrics(width: number, _height: number) {
-  // Escala pela largura da foto — evita carimbo maior que a imagem em retrato.
   const ref = width
-  const baseFont = Math.round(Math.max(22, Math.min(52, ref * 0.038)))
-  const largeFont = Math.round(Math.max(24, Math.min(44, ref * 0.034)))
-  const lineGap = Math.round(baseFont * 0.2)
-  const largeGap = Math.round(largeFont * 0.16)
-  const padding = Math.round(Math.max(8, ref * 0.012))
-  const textPad = Math.round(baseFont * 0.15)
+  const baseFont = Math.round(Math.max(34, Math.min(76, ref * 0.058)))
+  const largeFont = Math.round(Math.max(32, Math.min(72, ref * 0.054)))
+  const lineGap = Math.round(baseFont * 0.22)
+  const largeGap = Math.round(largeFont * 0.2)
+  const padding = Math.round(Math.max(10, ref * 0.014))
+  const textPad = Math.round(baseFont * 0.12)
   const maxTextW = width - padding * 2 - textPad * 2
   return { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW }
 }
@@ -74,39 +86,53 @@ function stampMetrics(width: number, _height: number) {
 function measureStampLines(
   ctx: CanvasRenderingContext2D,
   lines: StampLine[],
-  baseFont: number,
-  largeFont: number,
+  sizes: number[],
 ) {
-  return lines.map(line => {
-    const size = line.large ? largeFont : baseFont
-    ctx.font = STAMP_FONT.replace('%d', String(size))
-    return {
-      width: ctx.measureText(line.text).width,
-      height: size,
-      size,
-      large: line.large,
+  return lines.map((line, i) => {
+    const size = sizes[i]
+    ctx.font = stampFont(size, line.coords)
+    if (line.coords && 'letterSpacing' in ctx) {
+      ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0.04em'
     }
+    const width = ctx.measureText(line.text).width
+    if (line.coords && 'letterSpacing' in ctx) {
+      ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px'
+    }
+    return { width, height: size, size, large: line.large }
   })
 }
 
-/** Reduz fontes até todas as linhas caberem na largura disponível. */
-function fitStampFonts(
+/** Ajusta cada linha individualmente — evita comprimir tudo por causa do GPS. */
+function fitStampLineSizes(
   ctx: CanvasRenderingContext2D,
   lines: StampLine[],
   baseFont: number,
   largeFont: number,
   maxTextW: number,
 ) {
-  let b = baseFont
-  let l = largeFont
-  for (let attempt = 0; attempt < 24; attempt++) {
-    const measured = measureStampLines(ctx, lines, b, l)
-    const widest = Math.max(...measured.map(m => m.width))
-    if (widest <= maxTextW) return { baseFont: b, largeFont: l, measured }
-    b = Math.max(16, Math.floor(b * 0.92))
-    l = Math.max(16, Math.floor(l * 0.92))
-  }
-  return { baseFont: b, largeFont: l, measured: measureStampLines(ctx, lines, b, l) }
+  const minBase = 26
+  const minLarge = 24
+
+  const sizes = lines.map(line => (line.large ? largeFont : baseFont))
+
+  lines.forEach((line, i) => {
+    let size = sizes[i]
+    const min = line.large ? minLarge : minBase
+    ctx.font = stampFont(size, line.coords)
+    if (line.coords && 'letterSpacing' in ctx) {
+      ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0.04em'
+    }
+    while (ctx.measureText(line.text).width > maxTextW && size > min) {
+      size = Math.max(min, Math.floor(size * 0.96))
+      ctx.font = stampFont(size, line.coords)
+    }
+    if (line.coords && 'letterSpacing' in ctx) {
+      ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px'
+    }
+    sizes[i] = size
+  })
+
+  return { sizes, measured: measureStampLines(ctx, lines, sizes) }
 }
 
 function drawStampLine(
@@ -115,16 +141,34 @@ function drawStampLine(
   x: number,
   y: number,
   size: number,
+  coords?: boolean,
 ) {
-  ctx.font = STAMP_FONT.replace('%d', String(size))
+  ctx.font = stampFont(size, coords)
   ctx.textBaseline = 'top'
+  if (coords && 'letterSpacing' in ctx) {
+    ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0.04em'
+  }
+
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.9)'
+  ctx.shadowBlur = Math.max(6, size * 0.22)
+  ctx.shadowOffsetX = Math.max(1, size * 0.05)
+  ctx.shadowOffsetY = Math.max(2, size * 0.06)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText(text, x, y)
+  ctx.restore()
+
   ctx.lineJoin = 'round'
   ctx.miterLimit = 2
-  ctx.lineWidth = Math.max(2, size * 0.09)
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.88)'
+  ctx.lineWidth = Math.max(3, size * 0.12)
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)'
   ctx.fillStyle = '#ffffff'
   ctx.strokeText(text, x, y)
   ctx.fillText(text, x, y)
+
+  if (coords && 'letterSpacing' in ctx) {
+    ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px'
+  }
 }
 
 function drawStampOnContext(
@@ -137,7 +181,7 @@ function drawStampOnContext(
   const { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW } =
     stampMetrics(width, height)
 
-  const { baseFont: fitBase, largeFont: fitLarge, measured } = fitStampFonts(
+  const { sizes, measured } = fitStampLineSizes(
     ctx,
     lines,
     baseFont,
@@ -149,7 +193,7 @@ function drawStampOnContext(
   measured.forEach((m, i) => {
     blockH += m.height
     if (i < measured.length - 1) {
-      blockH += m.large || measured[i + 1]?.large ? largeGap : lineGap
+      blockH += lines[i].large || lines[i + 1]?.large ? largeGap : lineGap
     }
   })
 
@@ -158,8 +202,7 @@ function drawStampOnContext(
 
   lines.forEach((line, i) => {
     const m = measured[i]
-    const size = line.large ? fitLarge : fitBase
-    drawStampLine(ctx, line.text, x, cursorY, size)
+    drawStampLine(ctx, line.text, x, cursorY, sizes[i], line.coords)
     if (i < lines.length - 1) {
       cursorY += m.height + (line.large || lines[i + 1]?.large ? largeGap : lineGap)
     }

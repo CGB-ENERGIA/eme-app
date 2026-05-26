@@ -154,7 +154,7 @@ export default function Acionamento() {
 
       // Lê coordenadas reais gravadas no metadata pelo exportPDF.ts
       const subject = pdfDoc.getSubject() ?? ''
-      const match   = subject.match(/EME-ACIONAMENTO:(.+)/)
+      const match   = subject.match(/EME-ACIONAMENTO:([^|]+)/)
       if (!match) {
         alert('Este PDF não é compatível com o editor de acionamento. Gere um novo PDF pelo app.')
         return
@@ -210,8 +210,8 @@ export default function Acionamento() {
         : data.quebraProgramacao === 'nao' ? 'Não' : ''
       writeCell(quebraTexto, MX, y3, pepRowH, 210 - MX * 2)
 
-      // Foto de acionamento — vai na página 2 (índice 1), primeira posição das fotos
-      if (data.fotoAcionamento && pages.length >= 2) {
+      // Foto de acionamento — posição exata gravada pelo exportPDF.ts (FOTO-AC)
+      if (data.fotoAcionamento) {
         try {
           const imgData  = data.fotoAcionamento.split(',')[1]
           const imgBytes = Uint8Array.from(atob(imgData), c => c.charCodeAt(0))
@@ -219,22 +219,33 @@ export default function Acionamento() {
             ? await pdfDoc.embedPng(imgBytes)
             : await pdfDoc.embedJpg(imgBytes)
 
-          const page2 = pages[1]
-          const { height: h2 } = page2.getSize()
-          const pageHmm2 = h2 / PT
+          const fotoMeta = subject.match(/FOTO-AC:([^|]+)/)
+          let targetPage = pages[1]
+          let xMm = MX + 1
+          let yMm = 27
+          let wMm = (210 - MX * 2 - 4) / 2 - 2
+          let hMm = wMm * 0.72 - 1
 
-          // Coordenadas exatas do jsPDF para a primeira foto na página 2:
-          // y=14 (margem p2) + 12 (sectionTitle) = 26 → checkPage não quebra → rowStartY=26
-          // addImage: fx+1, rowStartY+1  →  x=MX+1, y=27
-          const COL       = 210 - MX * 2
-          const imgTopMm  = 14 + 12 + 1   // margem + título + padding top moldura
-          const fotoW     = ((COL - 4) / 2) * PT
-          const fotoH     = fotoW * 0.72 - PT
-          const fotoX     = (MX + 1) * PT
-          // pdf-lib Y = altura_página_pt - (topo_mm * PT) - fotoH
-          const fotoY     = (pageHmm2 - imgTopMm) * PT - fotoH
+          if (fotoMeta) {
+            const [pageNum, x, y, w, h] = fotoMeta[1].split(',').map(Number)
+            const pageIdx = pageNum - 1
+            if (pageIdx >= 0 && pageIdx < pages.length) {
+              targetPage = pages[pageIdx]
+              xMm = x
+              yMm = y
+              wMm = w
+              hMm = h
+            }
+          }
 
-          page2.drawImage(img, { x: fotoX, y: fotoY, width: fotoW - PT * 2, height: fotoH })
+          const { height: pagePt } = targetPage.getSize()
+          const pageHmm = pagePt / PT
+          const imgW = wMm * PT
+          const imgH = hMm * PT
+          const imgX = xMm * PT
+          const imgY = (pageHmm - yMm - hMm) * PT
+
+          targetPage.drawImage(img, { x: imgX, y: imgY, width: imgW, height: imgH })
         } catch { /* ignora */ }
       }
 

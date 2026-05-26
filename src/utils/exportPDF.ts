@@ -59,6 +59,20 @@ function duracaoLabel(valor: string) {
   return `${Math.floor(total / 60)}h ${total % 60}min`
 }
 
+function imageFormat(src: string): 'PNG' | 'JPEG' {
+  return src.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+}
+
+function addPdfImage(doc: jsPDF, src: string, x: number, y: number, w: number, h: number) {
+  const primary = imageFormat(src)
+  const fallback = primary === 'PNG' ? 'JPEG' : 'PNG'
+  try {
+    doc.addImage(src, primary, x, y, w, h)
+  } catch {
+    try { doc.addImage(src, fallback, x, y, w, h) } catch { /* ignorar imagem inválida */ }
+  }
+}
+
 // ─── Helpers de desenho ───────────────────────────────────────
 
 function headerPage(doc: jsPDF, logoBase64?: string | null) {
@@ -392,10 +406,8 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
 
   y += pepRowH + 4
 
-  // Grava coordenadas reais das células no metadata do PDF para o editor de acionamento
-  // Formato: "EME-ACIONAMENTO:y1,y2,y3,respW,halfRow,labelH,pepRowH,MX,COL,PAGE_H"
-  const coords = [yLinha1, yLinha2, yLinha3, respW, halfRow, labelH, pepRowH, MX, COL, PAGE_H].join(',')
-  doc.setProperties({ subject: `EME-ACIONAMENTO:${coords}` })
+  // Coordenadas das células de acionamento (metadata gravado ao final do PDF)
+  const acionamentoCoords = [yLinha1, yLinha2, yLinha3, respW, halfRow, labelH, pepRowH, MX, COL, PAGE_H].join(',')
 
   // ── INTERVALO E ENERGIZAÇÃO ──────────────────────────────────
   if (form.horaEnergizacao) {
@@ -425,6 +437,7 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
   // ── QUEBRA DE PÁGINA: página 2 começa com Fotos ───────────────
   doc.addPage()
   page++
+  const fotosPageNum = page
   y = 14
 
   // ── FOTOS DO SERVIÇO ─────────────────────────────────────────
@@ -443,6 +456,7 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
 
   let col2 = false
   let rowStartY = y
+  let fotoAcionamentoRect = ''
 
   for (const foto of fotasFixas) {
     if (!foto.src && foto.label !== 'Acionamento') continue
@@ -457,10 +471,12 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
     doc.setLineWidth(0.2)
     doc.roundedRect(fx, rowStartY, fotoW, fotoH + 8, 2, 2, 'S')
 
+    if (foto.label === 'Acionamento') {
+      fotoAcionamentoRect = [fotosPageNum, fx + 1, rowStartY + 1, fotoW - 2, fotoH - 1].join(',')
+    }
+
     if (foto.src) {
-      try {
-        doc.addImage(foto.src, 'JPEG', fx + 1, rowStartY + 1, fotoW - 2, fotoH - 1)
-      } catch { /* ignorar imagem inválida */ }
+      addPdfImage(doc, foto.src, fx + 1, rowStartY + 1, fotoW - 2, fotoH - 1)
     } else {
       // Placeholder para foto pendente
       doc.setFillColor(230, 230, 235)
@@ -533,16 +549,17 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
       const evFotoW = (COL - 16) / 2
       const evFotoH = evFotoW * 0.72
 
-      for (const [fi, { src, lbl }] of [
+      const evFotos = [
         { src: ev.foto1, lbl: 'Foto do Defeito' },
         { src: ev.foto2, lbl: 'Foto da Correção' },
-      ].entries()) {
-        if (!src) continue
+      ].filter((f): f is { src: string; lbl: string } => !!f.src)
+
+      for (const [fi, { src, lbl }] of evFotos.entries()) {
         const fx = MX + 7 + fi * (evFotoW + 4)
 
         doc.setFillColor(...CGB.faint)
         doc.roundedRect(fx, iy, evFotoW, evFotoH + 7, 1.5, 1.5, 'F')
-        try { doc.addImage(src, 'JPEG', fx + 1, iy + 1, evFotoW - 2, evFotoH - 1) } catch { /* */ }
+        addPdfImage(doc, src, fx + 1, iy + 1, evFotoW - 2, evFotoH - 1)
 
         doc.setFillColor(...CGB.dark)
         doc.rect(fx + 1, iy + evFotoH, evFotoW - 2, 6, 'F')
@@ -552,7 +569,7 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
         doc.text(lbl, fx + evFotoW / 2, iy + evFotoH + 4, { align: 'center' })
       }
 
-      if (ev.foto1 || ev.foto2) iy += evFotoH + 10
+      if (evFotos.length > 0) iy += evFotoH + 10
 
       y += evH + 5
     }
@@ -573,6 +590,11 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
   }
 
   // ── RODAPÉ EM TODAS AS PÁGINAS ───────────────────────────────
+  // Metadata para o editor de acionamento (células + slot exato da foto)
+  const subjectParts = [`EME-ACIONAMENTO:${acionamentoCoords}`]
+  if (fotoAcionamentoRect) subjectParts.push(`FOTO-AC:${fotoAcionamentoRect}`)
+  doc.setProperties({ subject: subjectParts.join('|') })
+
   const totalPages = (doc as unknown as { internal: { getNumberOfPages(): number } }).internal.getNumberOfPages()
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p)
