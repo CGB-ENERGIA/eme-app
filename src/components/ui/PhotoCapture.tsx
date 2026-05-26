@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Camera, Upload, X, Loader2 } from 'lucide-react'
 import CameraCapture, { captureViaNativeInput } from './CameraCapture'
-import { processGalleryPhoto, getCurrentCoordinates, isCameraSupported, type PhotoCoords } from '../../utils/stampImage'
+import { processGalleryPhoto, getBestCoordinates, isCameraSupported, type PhotoCoords } from '../../utils/stampImage'
 
 interface Props {
   label: string
@@ -23,7 +23,7 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
   const [cameraOpen, setCameraOpen] = useState(false)
 
   const openCamera = () => {
-    geoPrefetch.current = getCurrentCoordinates()
+    geoPrefetch.current = getBestCoordinates()
     if (isCameraSupported()) {
       setCameraOpen(true)
     } else {

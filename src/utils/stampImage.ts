@@ -2,6 +2,7 @@ export interface PhotoCoords {
   latitude: number
   longitude: number
   accuracy?: number
+  altitude?: number
 }
 
 export interface PhotoStampContext {
@@ -42,9 +43,12 @@ export function getStampLines(meta: PhotoMetadata): StampLine[] {
   }
 
   if (meta.coords) {
-    const acc = meta.coords.accuracy != null ? ` (±${Math.round(meta.coords.accuracy)}m)` : ''
-    lines.push({ text: `Lat: ${meta.coords.latitude.toFixed(6)}`, large: true })
-    lines.push({ text: `Lon: ${meta.coords.longitude.toFixed(6)}${acc}`, large: true })
+    const acc =
+      meta.coords.accuracy != null ? ` ${formatGpsAccuracy(meta.coords.accuracy)}` : ''
+    lines.push({
+      text: `Lat: ${formatGpsCoord(meta.coords.latitude)}  Lon: ${formatGpsCoord(meta.coords.longitude)}${acc}`,
+      large: true,
+    })
   } else {
     lines.push({ text: 'GPS indisponível', large: true })
   }
@@ -52,16 +56,58 @@ export function getStampLines(meta: PhotoMetadata): StampLine[] {
   return lines
 }
 
-function stampMetrics(width: number, height: number) {
-  const ref = Math.max(width, height)
-  const baseFont = Math.round(Math.max(36, ref * 0.042))
-  const largeFont = Math.round(Math.max(44, ref * 0.055))
-  const lineGap = Math.round(baseFont * 0.22)
-  const largeGap = Math.round(largeFont * 0.18)
-  const padding = Math.round(ref * 0.022)
-  const boxPad = Math.round(baseFont * 0.38)
-  const radius = Math.round(ref * 0.008)
-  return { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius }
+const STAMP_FONT = '700 %dpx Inter, system-ui, -apple-system, sans-serif'
+
+function stampMetrics(width: number, _height: number) {
+  // Escala pela largura da foto — evita carimbo maior que a imagem em retrato.
+  const ref = width
+  const baseFont = Math.round(Math.max(22, Math.min(52, ref * 0.038)))
+  const largeFont = Math.round(Math.max(24, Math.min(44, ref * 0.034)))
+  const lineGap = Math.round(baseFont * 0.2)
+  const largeGap = Math.round(largeFont * 0.16)
+  const padding = Math.round(Math.max(8, ref * 0.012))
+  const boxPad = Math.round(baseFont * 0.42)
+  const radius = Math.round(Math.max(4, ref * 0.006))
+  const maxTextW = width - padding * 2 - boxPad * 2
+  return { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius, maxTextW }
+}
+
+function measureStampLines(
+  ctx: CanvasRenderingContext2D,
+  lines: StampLine[],
+  baseFont: number,
+  largeFont: number,
+) {
+  return lines.map(line => {
+    const size = line.large ? largeFont : baseFont
+    ctx.font = STAMP_FONT.replace('%d', String(size))
+    return {
+      width: ctx.measureText(line.text).width,
+      height: size,
+      size,
+      large: line.large,
+    }
+  })
+}
+
+/** Reduz fontes até todas as linhas caberem na largura disponível. */
+function fitStampFonts(
+  ctx: CanvasRenderingContext2D,
+  lines: StampLine[],
+  baseFont: number,
+  largeFont: number,
+  maxTextW: number,
+) {
+  let b = baseFont
+  let l = largeFont
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const measured = measureStampLines(ctx, lines, b, l)
+    const widest = Math.max(...measured.map(m => m.width))
+    if (widest <= maxTextW) return { baseFont: b, largeFont: l, measured }
+    b = Math.max(16, Math.floor(b * 0.92))
+    l = Math.max(16, Math.floor(l * 0.92))
+  }
+  return { baseFont: b, largeFont: l, measured: measureStampLines(ctx, lines, b, l) }
 }
 
 function drawStampOnContext(
@@ -71,26 +117,30 @@ function drawStampOnContext(
   meta: PhotoMetadata,
 ) {
   const lines = getStampLines(meta)
-  const { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius } = stampMetrics(width, height)
+  const { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius, maxTextW } =
+    stampMetrics(width, height)
 
-  const measureLine = (line: StampLine) => {
-    const size = line.large ? largeFont : baseFont
-    ctx.font = `700 ${size}px Inter, system-ui, -apple-system, sans-serif`
-    return { width: ctx.measureText(line.text).width, height: size, size, large: line.large }
-  }
+  const { baseFont: fitBase, largeFont: fitLarge, measured } = fitStampFonts(
+    ctx,
+    lines,
+    baseFont,
+    largeFont,
+    maxTextW,
+  )
 
-  const measured = lines.map(measureLine)
-  const boxW = Math.max(...measured.map(m => m.width)) + boxPad * 2
+  const boxW = width - padding * 2
   let boxH = boxPad * 2
   measured.forEach((m, i) => {
     boxH += m.height
-    if (i < measured.length - 1) boxH += m.large || measured[i + 1]?.large ? largeGap : lineGap
+    if (i < measured.length - 1) {
+      boxH += m.large || measured[i + 1]?.large ? largeGap : lineGap
+    }
   })
 
   const x = padding
   const y = height - padding - boxH
 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.72)'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.78)'
   ctx.beginPath()
   ctx.roundRect(x, y, boxW, boxH, radius)
   ctx.fill()
@@ -100,7 +150,8 @@ function drawStampOnContext(
   let cursorY = y + boxPad
   lines.forEach((line, i) => {
     const m = measured[i]
-    ctx.font = `700 ${m.size}px Inter, system-ui, -apple-system, sans-serif`
+    const size = line.large ? fitLarge : fitBase
+    ctx.font = STAMP_FONT.replace('%d', String(size))
     ctx.fillText(line.text, x + boxPad, cursorY)
     if (i < lines.length - 1) {
       cursorY += m.height + (line.large || lines[i + 1]?.large ? largeGap : lineGap)
@@ -126,8 +177,50 @@ export function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-/** Obtém coordenadas GPS atuais (null se indisponível ou negado). */
-export async function getCurrentCoordinates(): Promise<PhotoCoords | null> {
+const GPS_OPTIONS = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 30_000,
+} as const
+
+/** Precisão alvo (metros) — para de refinar quando atingida. */
+const TARGET_ACCURACY_M = 5
+
+/** Formata coordenada com precisão máxima útil do GPS (~1 cm). */
+export function formatGpsCoord(value: number): string {
+  return value.toFixed(7)
+}
+
+/** Formata incerteza do GPS. */
+export function formatGpsAccuracy(accuracy: number): string {
+  return accuracy < 20 ? `±${accuracy.toFixed(1)}m` : `±${Math.round(accuracy)}m`
+}
+
+function pickBetterCoords(a: PhotoCoords | null, b: PhotoCoords | null): PhotoCoords | null {
+  if (!b) return a
+  if (!a) return b
+  const aAcc = a.accuracy ?? Number.POSITIVE_INFINITY
+  const bAcc = b.accuracy ?? Number.POSITIVE_INFINITY
+  return bAcc < aAcc ? b : a
+}
+
+function coordsFromPosition(pos: {
+  coords: {
+    latitude: number
+    longitude: number
+    accuracy?: number | null
+    altitude?: number | null
+  }
+}): PhotoCoords {
+  return {
+    latitude: pos.coords.latitude,
+    longitude: pos.coords.longitude,
+    accuracy: pos.coords.accuracy ?? undefined,
+    altitude: pos.coords.altitude ?? undefined,
+  }
+}
+
+async function ensureLocationPermission(): Promise<boolean> {
   try {
     const { Capacitor } = await import('@capacitor/core')
     if (Capacitor.isNativePlatform()) {
@@ -135,36 +228,117 @@ export async function getCurrentCoordinates(): Promise<PhotoCoords | null> {
       const perm = await Geolocation.checkPermissions()
       if (perm.location !== 'granted') {
         const req = await Geolocation.requestPermissions()
-        if (req.location !== 'granted') return null
+        return req.location === 'granted'
       }
-      const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 12_000,
-      })
-      return {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-      }
+      return true
     }
   } catch {
     /* fallback para navegador */
   }
+  return true
+}
 
-  if (!navigator.geolocation) return null
+export interface CoordsWatcher {
+  stop: () => void
+  getBest: () => PhotoCoords | null
+}
 
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        resolve({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
+/**
+ * Monitora GPS continuamente e mantém sempre o fix de maior precisão
+ * (menor valor de accuracy em metros).
+ */
+export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): CoordsWatcher {
+  let best: PhotoCoords | null = null
+  let stopped = false
+  let watchId: string | number | undefined
+  let nativeWatch = false
+
+  const apply = (coords: PhotoCoords) => {
+    const next = pickBetterCoords(best, coords)
+    if (next !== best) {
+      best = next
+      if (best) onUpdate?.(best)
+    }
+  }
+
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    void (async () => {
+      try {
+        if (nativeWatch && watchId != null) {
+          const { Geolocation } = await import('@capacitor/geolocation')
+          await Geolocation.clearWatch({ id: String(watchId) })
+        } else if (watchId != null && navigator.geolocation) {
+          navigator.geolocation.clearWatch(watchId as number)
+        }
+      } catch {
+        /* ignore */
+      }
+    })()
+  }
+
+  void (async () => {
+    const allowed = await ensureLocationPermission()
+    if (!allowed || stopped) return
+
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (Capacitor.isNativePlatform()) {
+        const { Geolocation } = await import('@capacitor/geolocation')
+        nativeWatch = true
+        watchId = await Geolocation.watchPosition(GPS_OPTIONS, (pos, err) => {
+          if (stopped || err || !pos) return
+          apply(coordsFromPosition(pos))
+        })
+        return
+      }
+    } catch {
+      /* fallback para navegador */
+    }
+
+    if (!navigator.geolocation || stopped) return
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => apply(coordsFromPosition(pos)),
+      () => {},
+      GPS_OPTIONS,
     )
+  })()
+
+  return { stop, getBest: () => best }
+}
+
+/**
+ * Aguarda o melhor fix possível dentro do tempo limite,
+ * refinando a posição enquanto o GPS estabiliza.
+ */
+export function getBestCoordinates(maxWaitMs = 20_000): Promise<PhotoCoords | null> {
+  return new Promise((resolve) => {
+    let settled = false
+    let watcher!: CoordsWatcher
+
+    const finish = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      watcher.stop()
+      resolve(watcher.getBest())
+    }
+
+    watcher = startCoordsWatcher((coords) => {
+      if (coords.accuracy != null && coords.accuracy <= TARGET_ACCURACY_M) {
+        finish()
+      }
+    })
+
+    const timer = setTimeout(finish, maxWaitMs)
   })
+}
+
+/** Obtém coordenadas GPS atuais (null se indisponível ou negado). */
+export async function getCurrentCoordinates(): Promise<PhotoCoords | null> {
+  return getBestCoordinates(20_000)
 }
 
 /** Desenha data/hora, INC, equipe e coordenadas na imagem. */

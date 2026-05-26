@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Camera, Loader2, SwitchCamera } from 'lucide-react'
 import {
   captureVideoFrame,
-  getCurrentCoordinates,
   getStampLines,
   isCameraSupported,
   processCameraPhoto,
+  startCoordsWatcher,
+  type CoordsWatcher,
   type PhotoCoords,
   type PhotoStampContext,
 } from '../../utils/stampImage'
@@ -29,6 +30,7 @@ export default function CameraCapture({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const geoWatchRef = useRef<CoordsWatcher | null>(null)
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [coords, setCoords] = useState<PhotoCoords | null>(null)
   const [now, setNow] = useState(() => new Date())
@@ -76,12 +78,16 @@ export default function CameraCapture({
       return
     }
 
-    getCurrentCoordinates().then(setCoords)
+    geoWatchRef.current?.stop()
+    setCoords(null)
+    geoWatchRef.current = startCoordsWatcher(setCoords)
     startCamera(facing)
 
     const clock = setInterval(() => setNow(new Date()), 1000)
     return () => {
       clearInterval(clock)
+      geoWatchRef.current?.stop()
+      geoWatchRef.current = null
       stopStream()
     }
   }, [open, facing, startCamera, stopStream, onClose, onFallback])
@@ -95,7 +101,7 @@ export default function CameraCapture({
     try {
       const result = await captureVideoFrame(video, {
         capturedAt: new Date(),
-        coords,
+        coords: geoWatchRef.current?.getBest() ?? coords,
         incidente,
         equipe,
       })
@@ -150,14 +156,19 @@ export default function CameraCapture({
         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
 
         {!loading && !error && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 pointer-events-none">
-            <div className="rounded-xl px-4 py-3 space-y-1.5" style={{ background: 'rgba(0,0,0,0.78)' }}>
+          <div className="absolute bottom-0 left-0 right-0 px-2 pb-2 pointer-events-none">
+            <div
+              className="w-full rounded-xl px-3 py-2.5 space-y-1"
+              style={{ background: 'rgba(0,0,0,0.78)' }}
+            >
               {overlayLines.map((line, i) => (
                 <p
                   key={i}
-                  className="text-white font-bold leading-tight"
+                  className="text-white font-bold leading-tight break-words"
                   style={{
-                    fontSize: line.large ? 'clamp(16px, 4.8vw, 24px)' : 'clamp(14px, 4vw, 20px)',
+                    fontSize: line.large
+                      ? 'clamp(11px, 3.2vw, 16px)'
+                      : 'clamp(12px, 3.6vw, 18px)',
                   }}
                 >
                   {line.text}
