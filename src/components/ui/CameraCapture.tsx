@@ -157,10 +157,7 @@ export default function CameraCapture({
 
         {!loading && !error && (
           <div className="absolute bottom-0 left-0 right-0 px-2 pb-2 pointer-events-none">
-            <div
-              className="w-full rounded-xl px-3 py-2.5 space-y-1"
-              style={{ background: 'rgba(0,0,0,0.78)' }}
-            >
+            <div className="w-full px-3 py-2.5 space-y-1">
               {overlayLines.map((line, i) => (
                 <p
                   key={i}
@@ -169,6 +166,8 @@ export default function CameraCapture({
                     fontSize: line.large
                       ? 'clamp(11px, 3.2vw, 16px)'
                       : 'clamp(12px, 3.6vw, 18px)',
+                    textShadow:
+                      '0 0 4px rgba(0,0,0,0.95), 0 1px 3px rgba(0,0,0,0.95), 1px 0 3px rgba(0,0,0,0.95), -1px 0 3px rgba(0,0,0,0.95)',
                   }}
                 >
                   {line.text}

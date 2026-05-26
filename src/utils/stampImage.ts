@@ -66,10 +66,9 @@ function stampMetrics(width: number, _height: number) {
   const lineGap = Math.round(baseFont * 0.2)
   const largeGap = Math.round(largeFont * 0.16)
   const padding = Math.round(Math.max(8, ref * 0.012))
-  const boxPad = Math.round(baseFont * 0.42)
-  const radius = Math.round(Math.max(4, ref * 0.006))
-  const maxTextW = width - padding * 2 - boxPad * 2
-  return { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius, maxTextW }
+  const textPad = Math.round(baseFont * 0.15)
+  const maxTextW = width - padding * 2 - textPad * 2
+  return { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW }
 }
 
 function measureStampLines(
@@ -110,6 +109,24 @@ function fitStampFonts(
   return { baseFont: b, largeFont: l, measured: measureStampLines(ctx, lines, b, l) }
 }
 
+function drawStampLine(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+) {
+  ctx.font = STAMP_FONT.replace('%d', String(size))
+  ctx.textBaseline = 'top'
+  ctx.lineJoin = 'round'
+  ctx.miterLimit = 2
+  ctx.lineWidth = Math.max(2, size * 0.09)
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.88)'
+  ctx.fillStyle = '#ffffff'
+  ctx.strokeText(text, x, y)
+  ctx.fillText(text, x, y)
+}
+
 function drawStampOnContext(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -117,7 +134,7 @@ function drawStampOnContext(
   meta: PhotoMetadata,
 ) {
   const lines = getStampLines(meta)
-  const { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius, maxTextW } =
+  const { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW } =
     stampMetrics(width, height)
 
   const { baseFont: fitBase, largeFont: fitLarge, measured } = fitStampFonts(
@@ -128,31 +145,21 @@ function drawStampOnContext(
     maxTextW,
   )
 
-  const boxW = width - padding * 2
-  let boxH = boxPad * 2
+  let blockH = textPad * 2
   measured.forEach((m, i) => {
-    boxH += m.height
+    blockH += m.height
     if (i < measured.length - 1) {
-      boxH += m.large || measured[i + 1]?.large ? largeGap : lineGap
+      blockH += m.large || measured[i + 1]?.large ? largeGap : lineGap
     }
   })
 
-  const x = padding
-  const y = height - padding - boxH
+  const x = padding + textPad
+  let cursorY = height - padding - blockH + textPad
 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.78)'
-  ctx.beginPath()
-  ctx.roundRect(x, y, boxW, boxH, radius)
-  ctx.fill()
-
-  ctx.fillStyle = '#ffffff'
-  ctx.textBaseline = 'top'
-  let cursorY = y + boxPad
   lines.forEach((line, i) => {
     const m = measured[i]
     const size = line.large ? fitLarge : fitBase
-    ctx.font = STAMP_FONT.replace('%d', String(size))
-    ctx.fillText(line.text, x + boxPad, cursorY)
+    drawStampLine(ctx, line.text, x, cursorY, size)
     if (i < lines.length - 1) {
       cursorY += m.height + (line.large || lines[i + 1]?.large ? largeGap : lineGap)
     }
