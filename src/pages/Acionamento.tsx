@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Upload, FileDown, Loader2, Sun, Moon, X, Camera, ZoomIn, ZoomOut, Save, CheckCircle, Trash2 } from 'lucide-react'
+import { ArrowLeft, Upload, FileDown, Loader2, Sun, Moon, X, ZoomIn, ZoomOut, Save, CheckCircle, Trash2 } from 'lucide-react'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
 import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento } from '../store/db'
 import { type AcionamentoData, emptyAcionamento } from '../types/acionamento'
-import { processCameraPhoto, processGalleryPhoto, getCurrentCoordinates, type PhotoCoords } from '../utils/stampImage'
+import PhotoCapture from '../components/ui/PhotoCapture'
 
 // ── helpers ──────────────────────────────────────────────────
 function fmtDT(v: string) {
@@ -46,84 +46,6 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
 function incFromPdfName(name: string): string {
   const m = name.match(/^EME_([^_.]+)/i)
   return m?.[1] ?? ''
-}
-
-function PhotoField({ value, onChange, incidente, equipe }: {
-  value: string | null
-  onChange: (v: string | null) => void
-  incidente?: string
-  equipe?: string
-}) {
-  const fileRef = useRef<HTMLInputElement>(null)
-  const camRef  = useRef<HTMLInputElement>(null)
-  const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
-  const [processing, setProcessing] = useState(false)
-
-  const openCamera = () => {
-    geoPrefetch.current = getCurrentCoordinates()
-    camRef.current?.click()
-  }
-
-  const handleFile = async (file: File | null, fromCamera: boolean) => {
-    if (!file) return
-    setProcessing(true)
-    try {
-      const result = fromCamera
-        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined, { incidente, equipe })
-        : await processGalleryPhoto(file)
-      onChange(result)
-    } catch {
-      onChange(null)
-    } finally {
-      geoPrefetch.current = null
-      setProcessing(false)
-      if (fromCamera && camRef.current) camRef.current.value = ''
-      if (!fromCamera && fileRef.current) fileRef.current.value = ''
-    }
-  }
-
-  return (
-    <>
-      {value ? (
-        <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600 h-44 bg-slate-50">
-          <img src={value} alt="Acionamento" className="w-full h-full object-cover" />
-          <button type="button" onClick={() => onChange(null)}
-            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 shadow-md">
-            <X size={14} />
-          </button>
-        </div>
-      ) : (
-        <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 h-44 flex flex-col items-center justify-center gap-3">
-          {processing ? (
-            <>
-              <Loader2 size={28} className="animate-spin" style={{ color: '#C0014A' }} />
-              <span className="text-xs font-medium text-slate-500">Processando foto...</span>
-            </>
-          ) : (
-            <>
-              <div className="flex gap-5">
-                <button type="button" onClick={openCamera}
-                  className="flex flex-col items-center gap-1.5" style={{ color: '#9B003C' }}>
-                  <div className="rounded-xl p-3" style={{ background: '#FFF0F4' }}><Camera size={22} /></div>
-                  <span className="text-xs font-semibold">Câmera</span>
-                </button>
-                <button type="button" onClick={() => fileRef.current?.click()}
-                  className="flex flex-col items-center gap-1.5 text-slate-500">
-                  <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-3"><Upload size={22} /></div>
-                  <span className="text-xs font-semibold">Galeria</span>
-                </button>
-              </div>
-              <span className="text-[10px] text-slate-400 font-medium">Câmera inclui data/hora e GPS automaticamente</span>
-            </>
-          )}
-        </div>
-      )}
-      <input ref={camRef}  type="file" accept="image/*" capture="environment" className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null, true)} />
-      <input ref={fileRef} type="file" accept="image/*" className="hidden"
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null, false)} />
-    </>
-  )
 }
 
 // ── página principal ─────────────────────────────────────────
@@ -621,9 +543,12 @@ export default function Acionamento() {
                     Foto do Acionamento
                   </h2>
                 </div>
-                <PhotoField value={data.fotoAcionamento}
+                <PhotoCapture
+                  label="Foto do Acionamento"
+                  value={data.fotoAcionamento}
                   onChange={(v) => set({ fotoAcionamento: v })}
-                  incidente={incFromPdfName(pdfName)} />
+                  incidente={incFromPdfName(pdfName)}
+                />
               </div>
 
               {/* Botão exportar */}

@@ -19,7 +19,7 @@ interface StampLine {
   large?: boolean
 }
 
-function formatTimestamp(date: Date): string {
+export function formatTimestamp(date: Date): string {
   return date.toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -27,6 +27,84 @@ function formatTimestamp(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+  })
+}
+
+/** Linhas de texto para overlay na tela e carimbo na foto. */
+export function getStampLines(meta: PhotoMetadata): StampLine[] {
+  const lines: StampLine[] = [{ text: formatTimestamp(meta.capturedAt) }]
+
+  if (meta.incidente?.trim()) {
+    lines.push({ text: `INC - ${meta.incidente.trim()}` })
+  }
+  if (meta.equipe?.trim()) {
+    lines.push({ text: `Equipe: ${meta.equipe.trim()}` })
+  }
+
+  if (meta.coords) {
+    const acc = meta.coords.accuracy != null ? ` (±${Math.round(meta.coords.accuracy)}m)` : ''
+    lines.push({ text: `Lat: ${meta.coords.latitude.toFixed(6)}`, large: true })
+    lines.push({ text: `Lon: ${meta.coords.longitude.toFixed(6)}${acc}`, large: true })
+  } else {
+    lines.push({ text: 'GPS indisponível', large: true })
+  }
+
+  return lines
+}
+
+function stampMetrics(width: number, height: number) {
+  const ref = Math.max(width, height)
+  const baseFont = Math.round(Math.max(36, ref * 0.042))
+  const largeFont = Math.round(Math.max(44, ref * 0.055))
+  const lineGap = Math.round(baseFont * 0.22)
+  const largeGap = Math.round(largeFont * 0.18)
+  const padding = Math.round(ref * 0.022)
+  const boxPad = Math.round(baseFont * 0.38)
+  const radius = Math.round(ref * 0.008)
+  return { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius }
+}
+
+function drawStampOnContext(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  meta: PhotoMetadata,
+) {
+  const lines = getStampLines(meta)
+  const { baseFont, largeFont, lineGap, largeGap, padding, boxPad, radius } = stampMetrics(width, height)
+
+  const measureLine = (line: StampLine) => {
+    const size = line.large ? largeFont : baseFont
+    ctx.font = `700 ${size}px Inter, system-ui, -apple-system, sans-serif`
+    return { width: ctx.measureText(line.text).width, height: size, size, large: line.large }
+  }
+
+  const measured = lines.map(measureLine)
+  const boxW = Math.max(...measured.map(m => m.width)) + boxPad * 2
+  let boxH = boxPad * 2
+  measured.forEach((m, i) => {
+    boxH += m.height
+    if (i < measured.length - 1) boxH += m.large || measured[i + 1]?.large ? largeGap : lineGap
+  })
+
+  const x = padding
+  const y = height - padding - boxH
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.72)'
+  ctx.beginPath()
+  ctx.roundRect(x, y, boxW, boxH, radius)
+  ctx.fill()
+
+  ctx.fillStyle = '#ffffff'
+  ctx.textBaseline = 'top'
+  let cursorY = y + boxPad
+  lines.forEach((line, i) => {
+    const m = measured[i]
+    ctx.font = `700 ${m.size}px Inter, system-ui, -apple-system, sans-serif`
+    ctx.fillText(line.text, x + boxPad, cursorY)
+    if (i < lines.length - 1) {
+      cursorY += m.height + (line.large || lines[i + 1]?.large ? largeGap : lineGap)
+    }
   })
 }
 
@@ -89,27 +167,6 @@ export async function getCurrentCoordinates(): Promise<PhotoCoords | null> {
   })
 }
 
-function buildStampLines(meta: PhotoMetadata): StampLine[] {
-  const lines: StampLine[] = [{ text: formatTimestamp(meta.capturedAt) }]
-
-  if (meta.incidente?.trim()) {
-    lines.push({ text: `INC - ${meta.incidente.trim()}` })
-  }
-  if (meta.equipe?.trim()) {
-    lines.push({ text: `Equipe: ${meta.equipe.trim()}` })
-  }
-
-  if (meta.coords) {
-    const acc = meta.coords.accuracy != null ? ` (±${Math.round(meta.coords.accuracy)}m)` : ''
-    lines.push({ text: `Lat: ${meta.coords.latitude.toFixed(6)}`, large: true })
-    lines.push({ text: `Lon: ${meta.coords.longitude.toFixed(6)}${acc}`, large: true })
-  } else {
-    lines.push({ text: 'GPS indisponível', large: true })
-  }
-
-  return lines
-}
-
 /** Desenha data/hora, INC, equipe e coordenadas na imagem. */
 export async function stampPhotoOnImage(
   dataUrl: string,
@@ -124,55 +181,30 @@ export async function stampPhotoOnImage(
   if (!ctx) return dataUrl
 
   ctx.drawImage(img, 0, 0)
-
-  const lines = buildStampLines(meta)
-  const scale = Math.max(canvas.width, canvas.height) / 1080
-  const baseFont = Math.round(Math.max(18, Math.min(52, 24 * scale)))
-  const largeFont = Math.round(baseFont * 1.45)
-  const lineGap = Math.round(baseFont * 0.28)
-  const largeGap = Math.round(largeFont * 0.22)
-  const padding = Math.round(Math.max(12, 16 * scale))
-  const boxPad = Math.round(baseFont * 0.4)
-
-  const measureLine = (line: StampLine) => {
-    const size = line.large ? largeFont : baseFont
-    ctx.font = `700 ${size}px Inter, system-ui, -apple-system, sans-serif`
-    return { width: ctx.measureText(line.text).width, height: size, size, large: line.large }
-  }
-
-  const measured = lines.map(measureLine)
-  const boxW = Math.max(...measured.map(m => m.width)) + boxPad * 2
-  let boxH = boxPad * 2
-  measured.forEach((m, i) => {
-    boxH += m.height
-    if (i < measured.length - 1) boxH += m.large || measured[i + 1]?.large ? largeGap : lineGap
-  })
-
-  const x = padding
-  const y = canvas.height - padding - boxH
-
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.68)'
-  ctx.beginPath()
-  const r = Math.round(6 * scale)
-  ctx.roundRect(x, y, boxW, boxH, r)
-  ctx.fill()
-
-  ctx.fillStyle = '#ffffff'
-  ctx.textBaseline = 'top'
-  let cursorY = y + boxPad
-  lines.forEach((line, i) => {
-    const m = measured[i]
-    ctx.font = `700 ${m.size}px Inter, system-ui, -apple-system, sans-serif`
-    ctx.fillText(line.text, x + boxPad, cursorY)
-    if (i < lines.length - 1) {
-      cursorY += m.height + (line.large || lines[i + 1]?.large ? largeGap : lineGap)
-    }
-  })
+  drawStampOnContext(ctx, canvas.width, canvas.height, meta)
 
   return canvas.toDataURL('image/jpeg', 0.92)
 }
 
-/** Processa foto da câmera com carimbo completo. */
+/** Captura frame do vídeo ao vivo e aplica carimbo. */
+export async function captureVideoFrame(
+  video: HTMLVideoElement,
+  meta: PhotoMetadata,
+): Promise<string> {
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas indisponível')
+
+  ctx.drawImage(video, 0, 0)
+  drawStampOnContext(ctx, canvas.width, canvas.height, meta)
+
+  return canvas.toDataURL('image/jpeg', 0.92)
+}
+
+/** Processa foto da câmera nativa (fallback) com carimbo completo. */
 export async function processCameraPhoto(
   file: File,
   prefetchedCoords?: Promise<PhotoCoords | null>,
@@ -189,4 +221,8 @@ export async function processCameraPhoto(
 /** Processa foto da galeria sem carimbo. */
 export async function processGalleryPhoto(file: File): Promise<string> {
   return fileToDataUrl(file)
+}
+
+export function isCameraSupported(): boolean {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
 }

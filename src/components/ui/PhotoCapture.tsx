@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Camera, Upload, X, Loader2 } from 'lucide-react'
-import { processCameraPhoto, processGalleryPhoto, getCurrentCoordinates, type PhotoCoords } from '../../utils/stampImage'
+import CameraCapture, { captureViaNativeInput } from './CameraCapture'
+import { processGalleryPhoto, getCurrentCoordinates, isCameraSupported, type PhotoCoords } from '../../utils/stampImage'
 
 interface Props {
   label: string
@@ -19,10 +20,15 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
   const cameraRef = useRef<HTMLInputElement>(null)
   const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [cameraOpen, setCameraOpen] = useState(false)
 
   const openCamera = () => {
     geoPrefetch.current = getCurrentCoordinates()
-    cameraRef.current?.click()
+    if (isCameraSupported()) {
+      setCameraOpen(true)
+    } else {
+      cameraRef.current?.click()
+    }
   }
 
   const handleFile = async (file: File | null, fromCamera: boolean) => {
@@ -30,7 +36,7 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
     setProcessing(true)
     try {
       const result = fromCamera
-        ? await processCameraPhoto(file, geoPrefetch.current ?? undefined, { incidente, equipe })
+        ? await captureViaNativeInput(file, geoPrefetch.current ?? undefined, { incidente, equipe })
         : await processGalleryPhoto(file)
       onChange(result)
     } catch {
@@ -47,6 +53,15 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
 
   return (
     <div className="flex flex-col gap-1.5">
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={onChange}
+        incidente={incidente}
+        equipe={equipe}
+        onFallback={() => cameraRef.current?.click()}
+      />
+
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wide flex items-center gap-1"
           style={{ color: hasError ? '#ef4444' : '#64748b' }}>
@@ -108,8 +123,8 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
                   <span className="text-xs font-medium">Galeria</span>
                 </button>
               </div>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                Câmera inclui data/hora e GPS automaticamente
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center px-3">
+                Câmera mostra data, INC, equipe e GPS antes de fotografar
               </span>
             </>
           )}
