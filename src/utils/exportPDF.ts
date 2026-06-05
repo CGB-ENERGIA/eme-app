@@ -450,6 +450,7 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
   const fotasFixas = [
     { label: 'Acionamento',                           src: form.fotoAcionamento },
     { label: 'Chegada da equipe na base',             src: form.fotoChegadaBase },
+    { label: 'Saída da equipe da base',               src: form.fotoSaidaBase },
     { label: 'Chegada da equipe no local de serviço', src: form.fotoChegadaServico },
     { label: 'Foto da Energização do Sistema',        src: form.fotoEnergizacao },
   ]

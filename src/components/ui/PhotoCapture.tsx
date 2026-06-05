@@ -62,8 +62,8 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
         onFallback={() => cameraRef.current?.click()}
       />
 
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide flex items-center gap-1"
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide leading-snug break-words flex-1 min-w-0"
           style={{ color: hasError ? '#ef4444' : '#64748b' }}>
           {label}
           {required && <span className="text-red-500">*</span>}
@@ -78,7 +78,7 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
 
       {value ? (
         <div className={`relative rounded-xl overflow-hidden border bg-slate-50 dark:bg-slate-700 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${hasError ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'}`}>
-          <img src={value} alt={label} className="w-full h-full object-cover" />
+          <img src={value} alt={label} className="w-full h-full object-contain bg-black" />
           <button
             type="button"
             onClick={() => onChange(null)}

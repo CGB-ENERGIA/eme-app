@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Camera, Loader2, SwitchCamera } from 'lucide-react'
 import {
-  capturePreciseCoordinates,
   captureVideoFrame,
   describeGpsStatus,
   getStampLines,
   isCameraSupported,
+  isGpsReadyForCapture,
   processCameraPhoto,
   startCoordsWatcher,
   type CoordsWatcher,
+  type GpsWatchStatus,
   type PhotoCoords,
   type PhotoStampContext,
 } from '../../utils/stampImage'
@@ -35,10 +36,10 @@ export default function CameraCapture({
   const geoWatchRef = useRef<CoordsWatcher | null>(null)
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [coords, setCoords] = useState<PhotoCoords | null>(null)
+  const [gpsWatchStatus, setGpsWatchStatus] = useState<GpsWatchStatus>('searching')
   const [now, setNow] = useState(() => new Date())
   const [loading, setLoading] = useState(true)
   const [capturing, setCapturing] = useState(false)
-  const [gpsMessage, setGpsMessage] = useState('Calibrando GPS...')
   const [error, setError] = useState<string | null>(null)
 
   const stopStream = useCallback(() => {
@@ -54,8 +55,8 @@ export default function CameraCapture({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
         audio: false,
       })
@@ -83,9 +84,10 @@ export default function CameraCapture({
 
     geoWatchRef.current?.stop()
     setCoords(null)
-    geoWatchRef.current = startCoordsWatcher((c) => {
+    setGpsWatchStatus('searching')
+    geoWatchRef.current = startCoordsWatcher((c, status) => {
       setCoords(c)
-      setGpsMessage(describeGpsStatus(c).message)
+      setGpsWatchStatus(status)
     })
     startCamera(facing)
 
@@ -98,19 +100,29 @@ export default function CameraCapture({
     }
   }, [open, facing, startCamera, stopStream, onClose, onFallback])
 
-  const gpsStatus = describeGpsStatus(coords)
+  const gpsStatus = describeGpsStatus(coords, gpsWatchStatus)
+  const gpsGood = isGpsReadyForCapture(coords)
+  const gpsMessage = capturing ? 'Capturando...' : gpsStatus.message
   const overlayLines = getStampLines({ capturedAt: now, coords, incidente, equipe })
+  const gpsDotClass =
+    gpsStatus.quality === 'excellent' || gpsStatus.quality === 'good'
+      ? 'bg-emerald-400'
+      : gpsStatus.quality === 'fair'
+        ? 'bg-amber-400'
+        : 'bg-rose-400'
 
   const handleCapture = async () => {
     const video = videoRef.current
     if (!video || !video.videoWidth) return
     setCapturing(true)
-    setGpsMessage('Refinando GPS para captura...')
     try {
-      const finalCoords = await capturePreciseCoordinates(geoWatchRef.current, 18_000)
+      const instantCoords =
+        geoWatchRef.current?.getStabilized() ??
+        geoWatchRef.current?.getBest() ??
+        coords
       const result = await captureVideoFrame(video, {
         capturedAt: new Date(),
-        coords: finalCoords ?? coords,
+        coords: instantCoords ?? coords,
         incidente,
         equipe,
       })
@@ -138,6 +150,7 @@ export default function CameraCapture({
           <X size={22} />
         </button>
         <span className="text-sm font-semibold">Câmera EME</span>
+        <span className={`w-2.5 h-2.5 rounded-full ${gpsDotClass}`} title={gpsMessage} />
         <span
           className="text-[10px] font-semibold px-2 py-1 rounded-full max-w-[45%] truncate"
           style={{
@@ -150,7 +163,7 @@ export default function CameraCapture({
           }}
           title={gpsMessage}
         >
-          {capturing ? 'Refinando GPS...' : gpsMessage}
+          {gpsMessage}
         </span>
         <button
           type="button"
@@ -201,13 +214,19 @@ export default function CameraCapture({
         )}
       </div>
 
-      <div className="flex items-center justify-center py-6 bg-black safe-bottom">
+      <div className="flex flex-col items-center justify-center py-4 bg-black safe-bottom gap-2">
+        {!gpsGood && !loading && !error && !capturing && coords && (
+          <p className="text-[11px] text-amber-200/80 font-medium text-center px-6 max-w-sm">
+            GPS ainda refinando — pode fotografar; coordenadas melhoram ao ar livre
+          </p>
+        )}
         <button
           type="button"
           onClick={handleCapture}
           disabled={loading || !!error || capturing}
           className="w-[72px] h-[72px] rounded-full border-4 border-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
           style={{ background: '#C0014A' }}
+          title={gpsMessage}
         >
           {capturing
             ? <Loader2 size={28} className="animate-spin text-white" />

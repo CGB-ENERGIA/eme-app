@@ -5,10 +5,10 @@ import { listarFormularios, excluirFormulario } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
-import { exportarPDF } from '../utils/exportPDF'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
 import LogoCGB from '../components/ui/LogoCGB'
+import { logError } from '../utils/telemetry'
 
 export default function Lista() {
   const navigate = useNavigate()
@@ -42,7 +42,14 @@ export default function Lista() {
   const gerarPDF = async (e: React.MouseEvent, form: FormularioEME) => {
     e.stopPropagation()
     setExportandoPDF(form.id)
-    try { await exportarPDF(form) } finally { setExportandoPDF(null) }
+    try {
+      const { exportarPDF } = await import('../utils/exportPDF')
+      await exportarPDF(form)
+    } catch (error) {
+      logError(error, { scope: 'lista', action: 'exportar-pdf', formId: form.id })
+    } finally {
+      setExportandoPDF(null)
+    }
   }
 
   const formatarData = (iso: string) => {

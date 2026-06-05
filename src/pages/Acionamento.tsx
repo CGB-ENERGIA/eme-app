@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Upload, FileDown, Loader2, Sun, Moon, X, ZoomIn, ZoomOut, Save, CheckCircle, Trash2 } from 'lucide-react'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
 import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento } from '../store/db'
 import { type AcionamentoData, emptyAcionamento } from '../types/acionamento'
 import PhotoCapture from '../components/ui/PhotoCapture'
+import { logError } from '../utils/telemetry'
 
 // ── helpers ──────────────────────────────────────────────────
 function fmtDT(v: string) {
@@ -122,23 +122,28 @@ export default function Acionamento() {
 
   const renderPages = async (buffer: ArrayBuffer) => {
     // usa pdfjs via CDN worker para não precisar configurar bundler
-    const pdfjsLib = await import('pdfjs-dist')
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+    try {
+      const pdfjsLib = await import('pdfjs-dist')
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
 
-    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
-    const pages: string[] = []
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
+      const pages: string[] = []
 
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i)
-      const viewport = page.getViewport({ scale: 2 })
-      const canvas = document.createElement('canvas')
-      canvas.width  = viewport.width
-      canvas.height = viewport.height
-      const ctx = canvas.getContext('2d')!
-      await page.render({ canvasContext: ctx, viewport, canvas }).promise
-      pages.push(canvas.toDataURL('image/jpeg', 0.92))
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const viewport = page.getViewport({ scale: 2 })
+        const canvas = document.createElement('canvas')
+        canvas.width  = viewport.width
+        canvas.height = viewport.height
+        const ctx = canvas.getContext('2d')!
+        await page.render({ canvasContext: ctx, viewport, canvas }).promise
+        pages.push(canvas.toDataURL('image/jpeg', 0.92))
+      }
+      setPdfPages(pages)
+    } catch (error) {
+      logError(error, { scope: 'acionamento', action: 'render-pages' })
+      setPdfPages([])
     }
-    setPdfPages(pages)
   }
 
   // ── gerar PDF mesclado ───────────────────────────────────
@@ -146,6 +151,7 @@ export default function Acionamento() {
     if (!pdfBytes) return
     setExporting(true)
     try {
+      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
       const pdfDoc  = await PDFDocument.load(new Uint8Array(pdfBytes))
       const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica)
       const pages   = pdfDoc.getPages()
@@ -257,6 +263,8 @@ export default function Acionamento() {
       a.download = pdfName.replace('.pdf', '') + '_acionamento.pdf'
       a.click()
       URL.revokeObjectURL(url)
+    } catch (error) {
+      logError(error, { scope: 'acionamento', action: 'exportar-pdf' })
     } finally {
       setExporting(false)
     }

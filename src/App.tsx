@@ -3,11 +3,13 @@ import Lista from './pages/Lista'
 import Formulario from './pages/Formulario'
 import Acionamento from './pages/Acionamento'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { SidebarProvider } from './contexts/SidebarContext'
 import InstallPrompt from './components/ui/InstallPrompt'
 
 export default function App() {
   return (
     <ThemeProvider>
+      <SidebarProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Lista />} />
@@ -16,6 +18,7 @@ export default function App() {
         </Routes>
         <InstallPrompt />
       </BrowserRouter>
+      </SidebarProvider>
     </ThemeProvider>
   )
 }

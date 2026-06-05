@@ -9,10 +9,9 @@ import IntervaloEnergizacao from '../components/sections/IntervaloEnergizacao'
 import Evidencias from '../components/sections/Evidencias'
 import FotosServico from '../components/sections/FotosServico'
 import Observacao from '../components/sections/Observacao'
-import { exportarPDF } from '../utils/exportPDF'
-import { exportarExcel } from '../utils/exportExcel'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
+import { logError } from '../utils/telemetry'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -37,6 +36,7 @@ function validarStep(step: number, form: FormularioEME): string[] {
   }
   if (step === 1) {
     if (!form.fotoChegadaBase) erros.push('fotoChegadaBase')
+    if (!form.fotoSaidaBase) erros.push('fotoSaidaBase')
     if (!form.fotoChegadaServico) erros.push('fotoChegadaServico')
   }
   if (step === 2) {
@@ -125,14 +125,28 @@ export default function Formulario() {
     if (!form) return
     setExportando('pdf')
     setShowExportMenu(false)
-    try { await exportarPDF(form) } finally { setExportando(null) }
+    try {
+      const { exportarPDF } = await import('../utils/exportPDF')
+      await exportarPDF(form)
+    } catch (error) {
+      logError(error, { scope: 'formulario', action: 'exportar-pdf' })
+    } finally {
+      setExportando(null)
+    }
   }
 
   const handleExportExcel = async () => {
     if (!form) return
     setExportando('excel')
     setShowExportMenu(false)
-    try { await exportarExcel(form) } finally { setExportando(null) }
+    try {
+      const { exportarExcel } = await import('../utils/exportExcel')
+      await exportarExcel(form)
+    } catch (error) {
+      logError(error, { scope: 'formulario', action: 'exportar-excel' })
+    } finally {
+      setExportando(null)
+    }
   }
 
   const irParaStep = (step: number) => {
@@ -164,14 +178,14 @@ export default function Formulario() {
 
   return (
     <AppShell page="formulario">
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 lg:pb-8 transition-colors duration-300 flex flex-col flex-1">
+    <div className="min-h-svh w-full bg-slate-50 dark:bg-slate-950 pb-28 lg:pb-8 transition-colors duration-300 flex flex-col flex-1">
 
       {/* Header */}
       <div
         className="sticky top-0 z-40 text-white shadow-lg"
         style={{ background: 'linear-gradient(135deg, #7B0029 0%, #C0014A 100%)' }}
       >
-        <div className="px-4 lg:px-8 py-3 flex items-center gap-3 max-w-6xl mx-auto w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
           <button
             onClick={() => navigate('/')}
             className="p-1.5 -ml-1.5 rounded-xl transition"
@@ -227,7 +241,7 @@ export default function Formulario() {
         </div>
 
         {/* Progress bar — mobile */}
-        <div className="px-4 pb-3 lg:hidden max-w-6xl mx-auto w-full">
+        <div className="px-4 sm:px-6 pb-3 lg:hidden w-full">
           {/* Step dots */}
           <div className="flex items-center gap-1 mb-2">
             {STEPS.map((_step, i) => (
@@ -256,10 +270,10 @@ export default function Formulario() {
       </div>
 
       {/* Layout desktop: stepper lateral + conteúdo */}
-      <div className="flex flex-1 max-w-6xl mx-auto w-full lg:px-8 lg:gap-8 lg:pt-6">
+      <div className="flex flex-1 w-full min-w-0 lg:px-6 xl:px-8 lg:gap-6 xl:gap-8 lg:pt-6">
 
         {/* Stepper lateral — desktop */}
-        <aside className="hidden lg:block w-56 flex-shrink-0">
+        <aside className="hidden lg:block w-44 xl:w-52 2xl:w-56 flex-shrink-0">
           <nav className="sticky top-24 space-y-1">
             {STEPS.map((step, i) => (
               <button
@@ -282,9 +296,9 @@ export default function Formulario() {
           </nav>
         </aside>
 
-        <div className="flex-1 min-w-0 flex flex-col pb-32 lg:pb-8">
+        <div className="flex-1 min-w-0 flex flex-col pb-28 lg:pb-8">
           {/* Step content */}
-          <div className="flex-1 max-w-lg lg:max-w-none mx-auto px-4 lg:px-0 pt-4 space-y-4 w-full">
+          <div className="flex-1 w-full min-w-0 px-4 sm:px-6 lg:px-0 pt-4 space-y-4">
 
         {currentStep === 0 && (
           <DadosIncidente form={form} onChange={onChange} showErrors={stepErrors.length > 0} />
@@ -324,8 +338,8 @@ export default function Formulario() {
           </div>
 
           {/* Navegação — mobile fixa / desktop no rodapé do conteúdo */}
-          <div className="fixed lg:static bottom-0 left-0 right-0 lg:mt-6 bg-white dark:bg-slate-900 border-t lg:border border-slate-100 dark:border-slate-700 p-4 lg:rounded-2xl lg:shadow-sm z-30 mx-4 lg:mx-0 mb-0 lg:mb-0">
-            <div className="max-w-lg lg:max-w-none mx-auto flex gap-3">
+          <div className="fixed lg:static bottom-0 inset-x-0 lg:mt-6 bg-white dark:bg-slate-900 border-t lg:border border-slate-100 dark:border-slate-700 p-4 safe-bottom lg:rounded-2xl lg:shadow-sm z-30">
+            <div className="w-full flex gap-3">
 
           {currentStep === 0 ? (
             <button

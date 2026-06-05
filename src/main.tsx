@@ -4,9 +4,11 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
 import { initNativeApp } from './utils/capacitor'
+import { initTelemetry } from './utils/telemetry'
 
 registerSW({ immediate: true })
 initNativeApp()
+void initTelemetry()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

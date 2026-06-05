@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core'
+
 export interface PhotoCoords {
   latitude: number
   longitude: number
@@ -19,6 +21,10 @@ interface StampLine {
   text: string
   large?: boolean
   coords?: boolean
+}
+
+function isNativeMobile(): boolean {
+  return Capacitor.isNativePlatform()
 }
 
 export function formatTimestamp(date: Date): string {
@@ -71,16 +77,17 @@ function stampFont(size: number, coords?: boolean) {
   return (coords ? STAMP_FONT_COORDS : STAMP_FONT).replace('%d', String(size))
 }
 
-function stampMetrics(width: number, _height: number) {
-  const ref = width
-  const baseFont = Math.round(Math.max(34, Math.min(76, ref * 0.058)))
-  const largeFont = Math.round(Math.max(32, Math.min(72, ref * 0.054)))
-  const lineGap = Math.round(baseFont * 0.22)
-  const largeGap = Math.round(largeFont * 0.2)
-  const padding = Math.round(Math.max(10, ref * 0.014))
-  const textPad = Math.round(baseFont * 0.12)
+function stampMetrics(width: number, height: number) {
+  const ref = Math.min(width, height * 1.35)
+  const baseFont = Math.round(Math.max(22, Math.min(42, ref * 0.038)))
+  const largeFont = Math.round(Math.max(21, Math.min(40, ref * 0.036)))
+  const lineGap = Math.round(baseFont * 0.12)
+  const largeGap = Math.round(largeFont * 0.1)
+  const padding = Math.round(Math.max(8, ref * 0.012))
+  const textPad = Math.round(baseFont * 0.08)
   const maxTextW = width - padding * 2 - textPad * 2
-  return { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW }
+  const maxBlockH = height * 0.28
+  return { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW, maxBlockH }
 }
 
 function measureStampLines(
@@ -110,8 +117,8 @@ function fitStampLineSizes(
   largeFont: number,
   maxTextW: number,
 ) {
-  const minBase = 26
-  const minLarge = 24
+  const minBase = 18
+  const minLarge = 18
 
   const sizes = lines.map(line => (line.large ? largeFont : baseFont))
 
@@ -178,10 +185,10 @@ function drawStampOnContext(
   meta: PhotoMetadata,
 ) {
   const lines = getStampLines(meta)
-  const { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW } =
+  const { baseFont, largeFont, lineGap, largeGap, padding, textPad, maxTextW, maxBlockH } =
     stampMetrics(width, height)
 
-  const { sizes, measured } = fitStampLineSizes(
+  let { sizes, measured } = fitStampLineSizes(
     ctx,
     lines,
     baseFont,
@@ -196,6 +203,19 @@ function drawStampOnContext(
       blockH += lines[i].large || lines[i + 1]?.large ? largeGap : lineGap
     }
   })
+
+  if (blockH > maxBlockH) {
+    const scale = Math.max(0.72, maxBlockH / blockH)
+    sizes = sizes.map(size => Math.max(16, Math.floor(size * scale)))
+    measured = measureStampLines(ctx, lines, sizes)
+    blockH = textPad * 2
+    measured.forEach((m, i) => {
+      blockH += m.height
+      if (i < measured.length - 1) {
+        blockH += lines[i].large || lines[i + 1]?.large ? largeGap : lineGap
+      }
+    })
+  }
 
   const x = padding + textPad
   let cursorY = height - padding - blockH + textPad
@@ -227,23 +247,63 @@ export function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-const GPS_OPTIONS = {
-  enableHighAccuracy: true,
-  maximumAge: 0,
-  timeout: 45_000,
-} as const
+function canvasToDataUrl(canvas: HTMLCanvasElement, quality = 0.86): Promise<string> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        resolve(canvas.toDataURL('image/jpeg', quality))
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.readAsDataURL(blob)
+    }, 'image/jpeg', quality)
+  })
+}
 
-/** Rejeita leituras de rede/Wi‑Fi imprecisas (ex.: ±100 km). */
-const MAX_ACCEPTABLE_ACCURACY_M = 60
-/** Precisão ideal para captura imediata. */
-const IDEAL_ACCURACY_M = 10
-/** Precisão alvo ao refinar. */
-const TARGET_ACCURACY_M = 6
+type GeoOptions = {
+  enableHighAccuracy: boolean
+  maximumAge: number
+  timeout: number
+  /** Android — intervalo mínimo entre updates (padrão do plugin: 5000 ms). */
+  minimumUpdateInterval?: number
+  /** Android — intervalo desejado de updates no watchPosition. */
+  interval?: number
+  /** Android — usa Google Play Services + fallback LocationManager. */
+  enableLocationFallback?: boolean
+}
+
+function gpsOptionsHigh(): GeoOptions {
+  const base: GeoOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: isNativeMobile() ? 5_000 : 4_000,
+  }
+  if (isNativeMobile()) {
+    base.minimumUpdateInterval = 1_000
+    base.interval = 1_000
+    base.enableLocationFallback = true
+  }
+  return base
+}
+
+/** Máxima incerteza aceita no carimbo da foto (metros). */
+const MAX_ACCEPTABLE_ACCURACY_M = 30
+/** Precisão considerada boa na interface. */
+const GOOD_ACCURACY_M = 15
+/** Tempo máximo buscando GPS antes de marcar indisponível. */
+const GPS_SEARCH_TIMEOUT_MS = 6_000
+/** Precisão ideal — retorno imediato na captura. */
+const IDEAL_ACCURACY_M = 15
+/** Refino rápido no instante da captura (segundos). */
+const CAPTURE_REFINE_MS = 2_500
 /** Amostras recentes usadas na média ponderada. */
-const MAX_SAMPLE_AGE_MS = 50_000
-const MAX_SAMPLES = 24
+const MAX_SAMPLE_AGE_MS = 45_000
+const MAX_SAMPLES = 16
 /** Distância máxima entre leituras consecutivas (salto rejeitado). */
 const MAX_JUMP_FACTOR = 2.5
+/** Limite para exibir coordenadas na tela enquanto melhora. */
+const MAX_DISPLAY_ACCURACY_M = 500
 
 interface GpsSample extends PhotoCoords {
   timestamp: number
@@ -262,27 +322,52 @@ function isValidCoords(coords: PhotoCoords): boolean {
   )
 }
 
-/** Aceita apenas leituras com incerteza razoável. */
+/** Aceita apenas leituras com incerteza razoável (captura final). */
 export function isAcceptableGpsReading(coords: PhotoCoords | null): coords is PhotoCoords {
   if (!coords || !isValidCoords(coords)) return false
   if (coords.accuracy == null || !Number.isFinite(coords.accuracy)) return false
   return coords.accuracy > 0 && coords.accuracy <= MAX_ACCEPTABLE_ACCURACY_M
 }
 
+/** Aceita leituras para exibição na câmera (inclui precisão baixa ou ausente). */
+export function isDisplayableGpsReading(coords: PhotoCoords | null): coords is PhotoCoords {
+  if (!coords || !isValidCoords(coords)) return false
+  if (coords.accuracy == null || !Number.isFinite(coords.accuracy)) return true
+  return coords.accuracy > 0 && coords.accuracy <= MAX_DISPLAY_ACCURACY_M
+}
+
+export type GpsWatchStatus = 'searching' | 'denied' | 'unavailable' | 'ready'
+
 export type GpsQuality = 'calibrating' | 'excellent' | 'good' | 'fair' | 'poor'
 
-export function describeGpsStatus(coords: PhotoCoords | null): { quality: GpsQuality; message: string } {
+export function describeGpsStatus(
+  coords: PhotoCoords | null,
+  watchStatus: GpsWatchStatus = 'searching',
+): { quality: GpsQuality; message: string } {
+  if (watchStatus === 'denied') {
+    return { quality: 'poor', message: 'Permissão de localização negada' }
+  }
+  if (watchStatus === 'unavailable') {
+    return { quality: 'poor', message: 'GPS indisponível' }
+  }
   if (!coords || !isValidCoords(coords)) {
-    return { quality: 'calibrating', message: 'Calibrando GPS — aguarde ao ar livre' }
+    return { quality: 'calibrating', message: 'Buscando GPS...' }
   }
   const acc = coords.accuracy
-  if (acc == null || acc > MAX_ACCEPTABLE_ACCURACY_M) {
-    return { quality: 'poor', message: 'GPS impreciso — aguarde estabilizar' }
+  if (acc == null || !Number.isFinite(acc) || acc <= 0) {
+    return { quality: 'fair', message: 'GPS ativo — refinando...' }
+  }
+  if (acc > MAX_ACCEPTABLE_ACCURACY_M) {
+    return { quality: 'poor', message: `GPS fraco ${formatGpsAccuracy(acc)}` }
   }
   if (acc <= 8) return { quality: 'excellent', message: `GPS preciso ${formatGpsAccuracy(acc)}` }
-  if (acc <= 18) return { quality: 'good', message: `GPS bom ${formatGpsAccuracy(acc)}` }
-  if (acc <= 40) return { quality: 'fair', message: `GPS moderado ${formatGpsAccuracy(acc)} — aguarde` }
-  return { quality: 'poor', message: `GPS fraco ${formatGpsAccuracy(acc)} — aguarde` }
+  if (acc <= GOOD_ACCURACY_M) return { quality: 'good', message: `GPS bom ${formatGpsAccuracy(acc)}` }
+  return { quality: 'fair', message: `GPS ${formatGpsAccuracy(acc)}` }
+}
+
+/** Indica qualidade alta do GPS (informativo — não bloqueia captura). */
+export function isGpsReadyForCapture(coords: PhotoCoords | null): boolean {
+  return isAcceptableGpsReading(coords) && (coords!.accuracy ?? 999) <= GOOD_ACCURACY_M
 }
 
 function distanceMeters(a: PhotoCoords, b: PhotoCoords): number {
@@ -315,7 +400,7 @@ function weightedCentroid(samples: GpsSample[]): PhotoCoords {
   return {
     latitude: latSum / wSum,
     longitude: lonSum / wSum,
-    accuracy: Math.max(3, bestAcc * 0.9),
+    accuracy: bestAcc,
     altitude: samples.find(s => s.altitude != null)?.altitude,
   }
 }
@@ -337,7 +422,8 @@ function stabilizeSamples(samples: GpsSample[], fallback: PhotoCoords | null): P
   const filtered = filterOutliers(valid)
   const pool = filtered.length >= 2 ? filtered : valid
 
-  if (pool.length >= 2) return weightedCentroid(pool.slice(-8))
+  if (pool.length >= 3) return weightedCentroid(pool.slice(-12))
+  if (pool.length >= 2) return weightedCentroid(pool)
   if (pool.length === 1 && (pool[0].accuracy ?? 999) <= IDEAL_ACCURACY_M) return pool[0]
   return isAcceptableGpsReading(fallback) ? fallback : pool[0]
 }
@@ -400,20 +486,17 @@ export interface CoordsWatcher {
   stop: () => void
   getBest: () => PhotoCoords | null
   getStabilized: () => PhotoCoords | null
+  getStatus: () => GpsWatchStatus
   sampleCount: () => number
 }
 
-async function fetchOneShotPosition(): Promise<PhotoCoords | null> {
-  const allowed = await ensureLocationPermission()
-  if (!allowed) return null
-
+async function readPosition(options: GeoOptions): Promise<PhotoCoords | null> {
   try {
     const { Capacitor } = await import('@capacitor/core')
     if (Capacitor.isNativePlatform()) {
       const { Geolocation } = await import('@capacitor/geolocation')
-      const pos = await Geolocation.getCurrentPosition(GPS_OPTIONS)
-      const coords = coordsFromPosition(pos)
-      return isAcceptableGpsReading(coords) ? coords : null
+      const pos = await Geolocation.getCurrentPosition(options)
+      return coordsFromPosition(pos)
     }
   } catch {
     /* fallback para navegador */
@@ -423,58 +506,87 @@ async function fetchOneShotPosition(): Promise<PhotoCoords | null> {
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords = coordsFromPosition(pos)
-        resolve(isAcceptableGpsReading(coords) ? coords : null)
-      },
+      (pos) => resolve(coordsFromPosition(pos)),
       () => resolve(null),
-      GPS_OPTIONS,
+      options,
     )
   })
 }
 
 /**
- * Refina GPS no instante da captura — aguarda leituras estáveis
- * e combina watcher + leitura avulsa de alta precisão.
+ * Refina GPS no instante da captura — usa o fix atual e melhora por até ~2,5 s.
  */
 export async function capturePreciseCoordinates(
   watcher?: CoordsWatcher | null,
-  maxWaitMs = 18_000,
+  maxWaitMs = CAPTURE_REFINE_MS,
 ): Promise<PhotoCoords | null> {
-  const freshPromise = fetchOneShotPosition()
+  const current = watcher?.getStabilized() ?? watcher?.getBest() ?? null
+  if (isAcceptableGpsReading(current) && (current.accuracy ?? 999) <= IDEAL_ACCURACY_M) {
+    return current
+  }
+
+  const freshPromise = readPosition(gpsOptionsHigh())
   const deadline = Date.now() + maxWaitMs
 
   while (Date.now() < deadline) {
-    const stabilized = watcher?.getStabilized() ?? null
-    if (stabilized && (stabilized.accuracy ?? 999) <= TARGET_ACCURACY_M) {
-      return stabilized
-    }
-    if (stabilized && (stabilized.accuracy ?? 999) <= IDEAL_ACCURACY_M && (watcher?.sampleCount() ?? 0) >= 2) {
-      return stabilized
-    }
-    await sleep(450)
+    const stabilized = watcher?.getStabilized() ?? watcher?.getBest() ?? null
+    if (isAcceptableGpsReading(stabilized)) return stabilized
+    await sleep(250)
   }
 
   const fresh = await freshPromise
-  const stabilized = watcher?.getStabilized() ?? null
-  const best = watcher?.getBest() ?? null
+  const stabilized = watcher?.getStabilized() ?? watcher?.getBest() ?? null
 
-  const candidates = [stabilized, fresh, best].filter(isAcceptableGpsReading)
-  if (candidates.length === 0) return null
+  const candidates = [stabilized, fresh, current].filter(isAcceptableGpsReading)
+  if (candidates.length > 0) {
+    return candidates.reduce((a, b) => pickBetterCoords(a, b)!)
+  }
 
-  return candidates.reduce((a, b) => pickBetterCoords(a, b)!) 
+  const loose = [stabilized, fresh, current].filter(isDisplayableGpsReading)
+  if (loose.length > 0) {
+    return loose.reduce((a, b) => pickBetterCoords(a, b)!)
+  }
+
+  return null
 }
 
 /**
  * Monitora GPS continuamente e mantém sempre o fix de maior precisão
  * (menor valor de accuracy em metros).
  */
-export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): CoordsWatcher {
+export function startCoordsWatcher(
+  onUpdate?: (coords: PhotoCoords | null, status: GpsWatchStatus) => void,
+): CoordsWatcher {
   let best: PhotoCoords | null = null
   let samples: GpsSample[] = []
   let stopped = false
   let watchId: string | number | undefined
   let nativeWatch = false
+  let watchStatus: GpsWatchStatus = 'searching'
+  let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+  const notify = () => {
+    const display = getStabilized() ?? best
+    onUpdate?.(display, watchStatus)
+  }
+
+  const markUnavailable = () => {
+    if (stopped || best || watchStatus === 'denied') return
+    watchStatus = 'unavailable'
+    notify()
+  }
+
+  const handleGeoFailure = (code?: number) => {
+    if (stopped) return
+    if (code === 1) {
+      watchStatus = 'denied'
+      notify()
+      return
+    }
+    if (!best && watchStatus === 'searching') {
+      markUnavailable()
+    }
+  }
 
   const pruneSamples = () => {
     const now = Date.now()
@@ -486,25 +598,32 @@ export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): Co
   const getStabilized = () => stabilizeSamples(samples, best)
 
   const apply = (raw: PhotoCoords) => {
-    if (!isAcceptableGpsReading(raw)) return
+    if (!isDisplayableGpsReading(raw)) return
 
-    pruneSamples()
-    if (samples.length >= 2) {
-      const ref = weightedCentroid(samples.slice(-4))
-      const jump = distanceMeters(raw, ref)
-      const maxJump = Math.max(20, (raw.accuracy ?? 25) * MAX_JUMP_FACTOR)
-      if (jump > maxJump) return
+    watchStatus = 'ready'
+    best = pickBetterCoords(best, raw)
+
+    if (isAcceptableGpsReading(raw)) {
+      pruneSamples()
+      if (samples.length >= 2) {
+        const ref = weightedCentroid(samples.slice(-4))
+        const jump = distanceMeters(raw, ref)
+        const maxJump = Math.max(15, (raw.accuracy ?? 20) * MAX_JUMP_FACTOR)
+        if (jump <= maxJump) {
+          samples.push({ ...raw, timestamp: Date.now() })
+        }
+      } else {
+        samples.push({ ...raw, timestamp: Date.now() })
+      }
     }
 
-    samples.push({ ...raw, timestamp: Date.now() })
-    best = pickBetterCoords(best, raw)
-    const display = getStabilized() ?? best
-    if (display) onUpdate?.(display)
+    notify()
   }
 
   const stop = () => {
     if (stopped) return
     stopped = true
+    if (searchTimer) clearTimeout(searchTimer)
     void (async () => {
       try {
         if (nativeWatch && watchId != null) {
@@ -521,16 +640,30 @@ export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): Co
 
   void (async () => {
     const allowed = await ensureLocationPermission()
-    if (!allowed || stopped) return
+    if (!allowed || stopped) {
+      watchStatus = 'denied'
+      notify()
+      return
+    }
+
+    void readPosition(gpsOptionsHigh()).then((coords) => {
+      if (coords && !stopped) apply(coords)
+    })
+
+    searchTimer = setTimeout(markUnavailable, GPS_SEARCH_TIMEOUT_MS)
 
     try {
       const { Capacitor } = await import('@capacitor/core')
       if (Capacitor.isNativePlatform()) {
         const { Geolocation } = await import('@capacitor/geolocation')
         nativeWatch = true
-        watchId = await Geolocation.watchPosition(GPS_OPTIONS, (pos, err) => {
-          if (stopped || err || !pos) return
-          apply(coordsFromPosition(pos))
+        watchId = await Geolocation.watchPosition(gpsOptionsHigh(), (pos, err) => {
+          if (stopped) return
+          if (err) {
+            handleGeoFailure(1)
+            return
+          }
+          if (pos) apply(coordsFromPosition(pos))
         })
         return
       }
@@ -538,12 +671,16 @@ export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): Co
       /* fallback para navegador */
     }
 
-    if (!navigator.geolocation || stopped) return
+    if (!navigator.geolocation || stopped) {
+      watchStatus = 'unavailable'
+      notify()
+      return
+    }
 
     watchId = navigator.geolocation.watchPosition(
       (pos) => apply(coordsFromPosition(pos)),
-      () => {},
-      GPS_OPTIONS,
+      (err) => handleGeoFailure(err.code),
+      gpsOptionsHigh(),
     )
   })()
 
@@ -551,6 +688,7 @@ export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): Co
     stop,
     getBest: () => (isAcceptableGpsReading(best) ? best : null),
     getStabilized,
+    getStatus: () => watchStatus,
     sampleCount: () => samples.length,
   }
 }
@@ -559,7 +697,7 @@ export function startCoordsWatcher(onUpdate?: (coords: PhotoCoords) => void): Co
  * Aguarda o melhor fix possível dentro do tempo limite,
  * refinando a posição enquanto o GPS estabiliza.
  */
-export function getBestCoordinates(maxWaitMs = 45_000): Promise<PhotoCoords | null> {
+export function getBestCoordinates(maxWaitMs = 15_000): Promise<PhotoCoords | null> {
   return new Promise((resolve) => {
     let settled = false
     let watcher!: CoordsWatcher
@@ -569,16 +707,14 @@ export function getBestCoordinates(maxWaitMs = 45_000): Promise<PhotoCoords | nu
       settled = true
       clearTimeout(timer)
       void (async () => {
-        const precise = await capturePreciseCoordinates(watcher, 8_000)
+        const precise = await capturePreciseCoordinates(watcher)
         watcher.stop()
         resolve(precise ?? watcher.getStabilized() ?? watcher.getBest())
       })()
     }
 
     watcher = startCoordsWatcher((coords) => {
-      if ((coords.accuracy ?? 999) <= TARGET_ACCURACY_M && watcher.sampleCount() >= 2) {
-        finish()
-      }
+      if (coords && isGpsReadyForCapture(coords)) finish()
     })
 
     const timer = setTimeout(finish, maxWaitMs)
@@ -587,7 +723,7 @@ export function getBestCoordinates(maxWaitMs = 45_000): Promise<PhotoCoords | nu
 
 /** Obtém coordenadas GPS atuais (null se indisponível ou negado). */
 export async function getCurrentCoordinates(): Promise<PhotoCoords | null> {
-  return getBestCoordinates(45_000)
+  return getBestCoordinates(15_000)
 }
 
 /** Desenha data/hora, INC, equipe e coordenadas na imagem. */
@@ -606,7 +742,7 @@ export async function stampPhotoOnImage(
   ctx.drawImage(img, 0, 0)
   drawStampOnContext(ctx, canvas.width, canvas.height, meta)
 
-  return canvas.toDataURL('image/jpeg', 0.92)
+  return canvasToDataUrl(canvas)
 }
 
 /** Captura frame do vídeo ao vivo e aplica carimbo. */
@@ -624,7 +760,7 @@ export async function captureVideoFrame(
   ctx.drawImage(video, 0, 0)
   drawStampOnContext(ctx, canvas.width, canvas.height, meta)
 
-  return canvas.toDataURL('image/jpeg', 0.92)
+  return canvasToDataUrl(canvas)
 }
 
 /** Processa foto da câmera nativa (fallback) com carimbo completo. */
@@ -635,8 +771,8 @@ export async function processCameraPhoto(
 ): Promise<string> {
   const dataUrl = await fileToDataUrl(file)
   let coords = prefetchedCoords ? await prefetchedCoords : null
-  if (!isAcceptableGpsReading(coords) || (coords.accuracy ?? 999) > IDEAL_ACCURACY_M) {
-    coords = await capturePreciseCoordinates(null, 15_000)
+  if (!isAcceptableGpsReading(coords)) {
+    coords = await capturePreciseCoordinates(null)
   }
   const capturedAt = new Date(file.lastModified || Date.now())
   return stampPhotoOnImage(dataUrl, { capturedAt, coords, ...context })

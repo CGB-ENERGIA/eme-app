@@ -1,73 +1,73 @@
-# React + TypeScript + Vite
+# EME App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação de formulários de campo com suporte offline, captura de fotos com carimbo (data/INC/equipe/GPS), exportação em PDF/Excel e módulo de acionamento.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React + TypeScript + Vite
+- Tailwind CSS
+- IndexedDB (`idb`) para persistência local
+- PWA (`vite-plugin-pwa`)
+- Capacitor (Android)
 
-## React Compiler
+## Requisitos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 20+
+- npm 10+
 
-## Expanding the ESLint configuration
+## Desenvolvimento local
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Build de produção:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
+
+## Deploy na Vercel
+
+O projeto já está preparado com:
+
+- `vercel.json` (build/output + rewrites para SPA)
+- `.vercelignore` (evita upload de arquivos Android)
+
+Passos:
+
+1. Importar o repositório na Vercel
+2. Confirmar:
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+3. Deploy
+
+## Observabilidade (opcional)
+
+O projeto possui integração opcional com Sentry.
+
+Para habilitar, configure no ambiente:
+
+```bash
+VITE_SENTRY_DSN=<sua_dsn>
+```
+
+Sem essa variável, o logger funciona apenas em `console.error`.
+
+## Notas de operação em campo
+
+- O GPS é refinado enquanto a câmera está aberta.
+- Ao fotografar, a captura prioriza instantaneidade e usa o melhor fix disponível.
+- Em ambiente fechado, a precisão pode degradar; em área aberta tende a melhorar.
+
+## Android (Capacitor)
+
+Fluxo básico:
+
+```bash
+npm run cap:sync
+npm run cap:open
+```
+
+As permissões de câmera e localização já estão declaradas no `AndroidManifest.xml`.
