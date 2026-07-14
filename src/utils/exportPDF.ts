@@ -261,7 +261,7 @@ function pill(doc: jsPDF, label: string, x: number, y: number, filled = false, f
 
 // ─── Exportação principal ─────────────────────────────────────
 
-export async function exportarPDF(form: FormularioEME): Promise<void> {
+export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<void | { blob: Blob; nome: string }> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 36
   let page = 1
@@ -604,5 +604,6 @@ export async function exportarPDF(form: FormularioEME): Promise<void> {
   }
 
   const nome = `EME_${form.incidente || form.id.slice(0, 8)}_${fmt(form.dataInicio).replace(/\//g, '-')}.pdf`
+  if (mode === 'blob') return { blob: doc.output('blob') as unknown as Blob, nome }
   doc.save(nome)
 }
