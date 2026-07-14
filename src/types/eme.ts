@@ -39,6 +39,7 @@ export interface FormularioEME {
   fotoSaidaBase: string | null
   fotoChegadaServico: string | null
   fotoEnergizacao: string | null
+  fotoChegadaBasePosAtendimento: string | null
 
   // Dados de acionamento (preenchidos posteriormente)
   acionamentoResponsavelEqtl: string
@@ -63,7 +64,7 @@ export const criarFormularioVazio = (): FormularioEME => ({
   status: 'rascunho',
   incidente: '',
   base: '',
-  municipio: 'Coroatá',
+  municipio: '',
   dataInicio: '',
   dataFinal: '',
   equipe: '',
@@ -81,6 +82,7 @@ export const criarFormularioVazio = (): FormularioEME => ({
   fotoSaidaBase: null,
   fotoChegadaServico: null,
   fotoEnergizacao: null,
+  fotoChegadaBasePosAtendimento: null,
   acionamentoResponsavelEqtl: '',
   acionamentoVia: '',
   acionamentoDataHora: '',

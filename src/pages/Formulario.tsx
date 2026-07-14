@@ -38,6 +38,7 @@ function validarStep(step: number, form: FormularioEME): string[] {
     if (!form.fotoChegadaBase) erros.push('fotoChegadaBase')
     if (!form.fotoSaidaBase) erros.push('fotoSaidaBase')
     if (!form.fotoChegadaServico) erros.push('fotoChegadaServico')
+    if (!form.fotoChegadaBasePosAtendimento) erros.push('fotoChegadaBasePosAtendimento')
   }
   if (step === 2) {
     if (!form.fotoEnergizacao) erros.push('fotoEnergizacao')

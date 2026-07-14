@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap } from 'lucide-react'
+import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X } from 'lucide-react'
 import { listarFormularios, excluirFormulario } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
@@ -17,6 +17,7 @@ export default function Lista() {
   const [carregando, setCarregando] = useState(true)
   const [excluindo, setExcluindo] = useState<string | null>(null)
   const [exportandoPDF, setExportandoPDF] = useState<string | null>(null)
+  const [busca, setBusca] = useState('')
 
   const carregar = async () => {
     setCarregando(true)
@@ -68,6 +69,16 @@ export default function Lista() {
 
   const finalizados = formularios.filter(f => f.status === 'finalizado').length
   const rascunhos   = formularios.filter(f => f.status === 'rascunho').length
+
+  const termo = busca.toLowerCase().trim()
+  const formulariosFiltrados = termo
+    ? formularios.filter(f =>
+        f.incidente.toLowerCase().includes(termo) ||
+        f.equipe.toLowerCase().includes(termo) ||
+        f.municipio.toLowerCase().includes(termo) ||
+        f.base.toLowerCase().includes(termo)
+      )
+    : formularios
 
   return (
     <AppShell page="lista">
@@ -154,8 +165,29 @@ export default function Lista() {
         </div>
 
         {!carregando && formularios.length > 0 && (
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-7 mb-3 px-1">
-            Registros recentes
+          <div className="relative mt-5">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Pesquisar por incidente, equipe, município..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className="w-full pl-9 pr-9 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C0014A] focus:border-transparent transition"
+            />
+            {busca && (
+              <button
+                onClick={() => setBusca('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {!carregando && formularios.length > 0 && (
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-5 mb-3 px-1">
+            {termo ? `${formulariosFiltrados.length} resultado${formulariosFiltrados.length !== 1 ? 's' : ''}` : 'Registros recentes'}
           </p>
         )}
 
@@ -183,7 +215,22 @@ export default function Lista() {
             </div>
           )}
 
-          {formularios.map((f) => (
+          {!carregando && formularios.length > 0 && formulariosFiltrados.length === 0 && (
+            <div className="text-center py-12">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
+                <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
+                  style={{ background: '#FFF0F4' }}>
+                  <Search size={28} style={{ color: '#C0014A' }} />
+                </div>
+                <p className="font-bold text-slate-700 dark:text-slate-200 text-base">Nenhum resultado</p>
+                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed">
+                  Nenhum formulário encontrado para "{busca}".
+                </p>
+              </div>
+            </div>
+          )}
+
+          {formulariosFiltrados.map((f) => (
             <div key={f.id}
               className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden transition-colors duration-300"
               style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: theme === 'dark' ? '1px solid #334155' : '1px solid #F0E4EA' }}>

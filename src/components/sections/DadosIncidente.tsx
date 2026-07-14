@@ -30,14 +30,53 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           value={form.base}
           onChange={(e) => onChange({ base: e.target.value })}
         />
-        <Field
-          label="Município"
-          required
-          showError={showErrors}
-          placeholder="Município"
-          value={form.municipio}
-          onChange={(e) => onChange({ municipio: e.target.value })}
-        />
+        <>
+          <datalist id="municipios-ma">
+            <option value="AÇAILÂNDIA" />
+            <option value="ALTO ALEGRE DO MARANHÃO" />
+            <option value="ARARI" />
+            <option value="BACABAL" />
+            <option value="BALSAS" />
+            <option value="BARRA DO CORDA" />
+            <option value="BREJO" />
+            <option value="BURITI" />
+            <option value="CAXIAS" />
+            <option value="CHAPADINHA" />
+            <option value="CODÓ" />
+            <option value="COROATÁ" />
+            <option value="ESPERANTINÓPOLIS" />
+            <option value="GRAJAÚ" />
+            <option value="IMPERATRIZ" />
+            <option value="ITAPECURU MIRIM" />
+            <option value="JOÃO LISBOA" />
+            <option value="LAGO DA PEDRA" />
+            <option value="LAGO DO JUNCO" />
+            <option value="MATÕES" />
+            <option value="MIRADOR" />
+            <option value="OLHO D'ÁGUA DAS CUNHÃS" />
+            <option value="PARAIBANO" />
+            <option value="PARNARAMA" />
+            <option value="PEDREIRAS" />
+            <option value="PERITORÓ" />
+            <option value="PRESIDENTE DUTRA" />
+            <option value="SANTA INÊS" />
+            <option value="SÃO JOÃO DOS PATOS" />
+            <option value="SÃO LUÍS" />
+            <option value="SÃO MATEUS DO MARANHÃO" />
+            <option value="TIMBIRAS" />
+            <option value="TIMON" />
+            <option value="VITORINO FREIRE" />
+          </datalist>
+          <Field
+            label="Município"
+            required
+            showError={showErrors}
+            placeholder="Município"
+            list="municipios-ma"
+            value={form.municipio}
+            onChange={(e) => onChange({ municipio: e.target.value.toUpperCase() })}
+          />
+        </>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Field
