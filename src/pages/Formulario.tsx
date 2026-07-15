@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon } from 'lucide-react'
 import { buscarFormulario, salvarFormulario } from '../store/db'
 import type { FormularioEME } from '../types/eme'
@@ -60,15 +60,23 @@ export default function Formulario() {
   const [stepErrors, setStepErrors] = useState<string[]>([])
   const [showEnergizacaoModal, setShowEnergizacaoModal] = useState(false)
 
-  // Lê ?step=N da URL para iniciar no passo correto (ex: vindo de Solicitações)
-  const searchParams = new URLSearchParams(window.location.search)
-  const stepParam = parseInt(searchParams.get('step') ?? '0', 10)
-  const [currentStep, setCurrentStep] = useState(isNaN(stepParam) ? 0 : stepParam)
+  const [searchParams] = useSearchParams()
+  const [currentStep, setCurrentStep] = useState(() => {
+    const step = parseInt(searchParams.get('step') ?? '0', 10)
+    return isNaN(step) ? 0 : step
+  })
 
   useEffect(() => {
     if (!id) return
     buscarFormulario(id).then((f) => {
-      setForm(f ?? criarFormularioVazio())
+      if (f) {
+        setForm(f)
+      } else {
+        // Form não existe neste dispositivo (link compartilhado) — cria vazio preservando o ID
+        const novo = criarFormularioVazio()
+        novo.id = id
+        setForm(novo)
+      }
     })
   }, [id])
 
