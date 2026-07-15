@@ -46,7 +46,7 @@ export async function uploadFoto(key: string, dataUrl: string): Promise<string> 
     throw new Error(`R2 upload falhou (${res.status}): ${err}`)
   }
 
-  const json = await res.json<{ url: string }>()
+  const json = (await res.json()) as { url: string }
   return json.url
 }
 
@@ -70,7 +70,7 @@ export async function uploadFotosFormulario(
   if (!isConfigured()) return fotos
 
   const resultado: FotoMap = {}
-  const uploads = Object.entries(fotos).map(async ([campo, valor]) => {
+  const uploads = Object.entries(fotos).map(async ([campo, valor]: [string, string]) => {
     if (!valor || isRemoteUrl(valor)) {
       resultado[campo] = valor
       return
