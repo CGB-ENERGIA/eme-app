@@ -57,9 +57,13 @@ export default function Formulario() {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null)
   const [showExportMenu, setShowExportMenu] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
   const [stepErrors, setStepErrors] = useState<string[]>([])
   const [showEnergizacaoModal, setShowEnergizacaoModal] = useState(false)
+
+  // Lê ?step=N da URL para iniciar no passo correto (ex: vindo de Solicitações)
+  const searchParams = new URLSearchParams(window.location.search)
+  const stepParam = parseInt(searchParams.get('step') ?? '0', 10)
+  const [currentStep, setCurrentStep] = useState(isNaN(stepParam) ? 0 : stepParam)
 
   useEffect(() => {
     if (!id) return

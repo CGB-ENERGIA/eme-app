@@ -1,11 +1,11 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList } from 'lucide-react'
 import LogoCGB from '../ui/LogoCGB'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useSidebar } from '../../contexts/SidebarContext'
 
-export type AppPage = 'lista' | 'formulario' | 'acionamento'
+export type AppPage = 'lista' | 'formulario' | 'acionamento' | 'solicitacoes'
 
 interface Props {
   page: AppPage
@@ -13,6 +13,7 @@ interface Props {
 }
 
 const NAV = [
+  { to: '/solicitacoes', page: 'solicitacoes' as const, label: 'Solicitações', icon: ClipboardList },
   { to: '/', page: 'lista' as const, label: 'Formulários', icon: FileText },
   { to: '/acionamento', page: 'acionamento' as const, label: 'Acionamento', icon: Zap },
 ]
