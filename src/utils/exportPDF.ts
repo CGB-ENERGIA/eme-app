@@ -63,14 +63,31 @@ function imageFormat(src: string): 'PNG' | 'JPEG' {
   return src.startsWith('data:image/png') ? 'PNG' : 'JPEG'
 }
 
-function addPdfImage(doc: jsPDF, src: string, x: number, y: number, w: number, h: number) {
-  const primary = imageFormat(src)
-  const fallback = primary === 'PNG' ? 'JPEG' : 'PNG'
-  try {
-    doc.addImage(src, primary, x, y, w, h)
-  } catch {
-    try { doc.addImage(src, fallback, x, y, w, h) } catch { /* ignorar imagem inválida */ }
-  }
+async function addPdfImage(doc: jsPDF, src: string, x: number, y: number, w: number, h: number): Promise<void> {
+  // Re-encoda via canvas para garantir compatibilidade com Adobe Reader
+  return new Promise<void>((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('no ctx')
+        ctx.drawImage(img, 0, 0)
+        const jpeg = canvas.toDataURL('image/jpeg', 0.88)
+        doc.addImage(jpeg, 'JPEG', x, y, w, h)
+      } catch {
+        try {
+          const fmt = imageFormat(src)
+          doc.addImage(src, fmt, x, y, w, h)
+        } catch { /* ignorar imagem inválida */ }
+      }
+      resolve()
+    }
+    img.onerror = () => resolve()
+    img.src = src
+  })
 }
 
 // ─── Helpers de desenho ───────────────────────────────────────
@@ -478,7 +495,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
     }
 
     if (foto.src) {
-      addPdfImage(doc, foto.src, fx + 1, rowStartY + 1, fotoW - 2, fotoH - 1)
+      await addPdfImage(doc, foto.src, fx + 1, rowStartY + 1, fotoW - 2, fotoH - 1)
     } else {
       // Placeholder para foto pendente
       doc.setFillColor(230, 230, 235)
@@ -561,7 +578,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
 
         doc.setFillColor(...CGB.faint)
         doc.roundedRect(fx, iy, evFotoW, evFotoH + 7, 1.5, 1.5, 'F')
-        addPdfImage(doc, src, fx + 1, iy + 1, evFotoW - 2, evFotoH - 1)
+        await addPdfImage(doc, src, fx + 1, iy + 1, evFotoW - 2, evFotoH - 1)
 
         doc.setFillColor(...CGB.dark)
         doc.rect(fx + 1, iy + evFotoH, evFotoW - 2, 6, 'F')
