@@ -72,7 +72,7 @@ export async function uploadFotosFormulario(
   const resultado: FotoMap = {}
   const uploads = Object.keys(fotos).map(async (campo) => {
     const valor: string = fotos[campo]
-    if (!valor || isRemoteUrl(valor)) {
+    if (!valor || valor.startsWith('http://') || valor.startsWith('https://')) {
       resultado[campo] = valor
       return
     }
