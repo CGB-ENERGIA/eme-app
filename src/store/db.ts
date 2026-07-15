@@ -4,6 +4,7 @@ import type { AcionamentoData } from '../types/acionamento'
 import { criarFormularioVazio, type EvidenciaItem } from '../types/eme'
 import { emptyAcionamento } from '../types/acionamento'
 import { logError } from '../utils/telemetry'
+import { syncFormulario, excluirFormularioSupabase } from '../lib/supabase'
 
 interface AcionamentoRecord {
   name: string          // nome do PDF — chave primária
@@ -104,6 +105,10 @@ export async function salvarFormulario(form: FormularioEME): Promise<void> {
     logError(error, { scope: 'db', action: 'salvar-formulario', id: form.id })
     throw error
   }
+  // Sync remoto em background — não bloqueia a UI
+  syncFormulario(atualizado).catch((err) =>
+    logError(err, { scope: 'supabase', action: 'sync-formulario', id: form.id })
+  )
 }
 
 export async function buscarFormulario(id: string): Promise<FormularioEME | undefined> {
@@ -131,6 +136,9 @@ export async function listarFormularios(): Promise<FormularioEME[]> {
 export async function excluirFormulario(id: string): Promise<void> {
   const db = await getDB()
   await db.delete('formularios', id)
+  excluirFormularioSupabase(id).catch((err) =>
+    logError(err, { scope: 'supabase', action: 'excluir-formulario', id })
+  )
 }
 
 // ── Acionamentos ─────────────────────────────────────────────
