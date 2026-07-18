@@ -136,7 +136,7 @@ export default function Lista() {
               {/* Toggle dark/light — mobile only (desktop: sidebar) */}
               <button
                 onClick={toggle}
-                className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95"
+                className="lg:hidden flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-2xl text-xs font-semibold transition-all active:scale-95"
                 style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
                 title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
               >
