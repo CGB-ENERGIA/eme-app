@@ -40,15 +40,6 @@ export default function FotosServico({ form, onChange, showErrors }: Props) {
         required
         showError={showErrors}
       />
-      <PhotoCapture
-        label="4. Chegada da equipe na base pós atendimento"
-        value={form.fotoChegadaBasePosAtendimento}
-        onChange={(v) => onChange({ fotoChegadaBasePosAtendimento: v })}
-        incidente={form.incidente}
-        equipe={form.equipe}
-        required
-        showError={showErrors}
-      />
       </div>
     </SectionCard>
   )

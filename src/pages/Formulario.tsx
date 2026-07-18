@@ -38,6 +38,8 @@ function validarStep(step: number, form: FormularioEME): string[] {
     if (!form.fotoChegadaBase) erros.push('fotoChegadaBase')
     if (!form.fotoSaidaBase) erros.push('fotoSaidaBase')
     if (!form.fotoChegadaServico) erros.push('fotoChegadaServico')
+  }
+  if (step === 4) {
     if (!form.fotoChegadaBasePosAtendimento) erros.push('fotoChegadaBasePosAtendimento')
   }
   if (step === 2) {
@@ -336,7 +338,7 @@ export default function Formulario() {
         )}
 
         {currentStep === 4 && (
-          <Observacao form={form} onChange={onChange} />
+          <Observacao form={form} onChange={onChange} showErrors={stepErrors.length > 0} />
         )}
 
         {/* Validation error summary */}
