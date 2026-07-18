@@ -33,6 +33,7 @@ export default function CameraCapture({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const startSeqRef = useRef(0)
   const geoWatchRef = useRef<CoordsWatcher | null>(null)
   const [facing, setFacing] = useState<'environment' | 'user'>('environment')
   const [coords, setCoords] = useState<PhotoCoords | null>(null)
@@ -48,6 +49,9 @@ export default function CameraCapture({
   }, [])
 
   const startCamera = useCallback(async (mode: 'environment' | 'user') => {
+    // Sequência protege contra chamadas concorrentes (StrictMode / troca de câmera):
+    // apenas a chamada mais recente pode aplicar stream, erro ou loading.
+    const seq = ++startSeqRef.current
     stopStream()
     setLoading(true)
     setError(null)
@@ -60,16 +64,25 @@ export default function CameraCapture({
         },
         audio: false,
       })
+      if (seq !== startSeqRef.current) {
+        stream.getTracks().forEach(t => t.stop())
+        return
+      }
       streamRef.current = stream
       const video = videoRef.current
       if (video) {
         video.srcObject = stream
-        await video.play()
+        try {
+          await video.play()
+        } catch (e) {
+          // play() é interrompido (AbortError) quando outro load começa — não é falha real
+          if ((e as Error).name !== 'AbortError' && (e as Error).name !== 'NotAllowedError') throw e
+        }
       }
     } catch {
-      setError('Não foi possível acessar a câmera.')
+      if (seq === startSeqRef.current) setError('Não foi possível acessar a câmera.')
     } finally {
-      setLoading(false)
+      if (seq === startSeqRef.current) setLoading(false)
     }
   }, [stopStream])
 
