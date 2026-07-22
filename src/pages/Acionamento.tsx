@@ -32,13 +32,15 @@ function Label({ children }: { children: React.ReactNode }) {
 function Input({ value, onChange, placeholder, type = 'text' }: {
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string
 }) {
+  const forceUpper = !type || type === 'text'
   return (
     <input
       type={type}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(forceUpper ? e.target.value.toUpperCase() : e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-900/30 transition"
+      autoCapitalize={forceUpper ? 'characters' : undefined}
+      className={`w-full rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-600 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-900/30 transition ${forceUpper ? 'uppercase' : ''}`}
     />
   )
 }
