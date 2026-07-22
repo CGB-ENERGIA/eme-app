@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import InstallPrompt from './components/ui/InstallPrompt'
 import DesktopOnly from './components/routing/DesktopOnly'
+import HomeRedirect from './components/routing/HomeRedirect'
 
 export default function App() {
   return (
@@ -14,13 +15,17 @@ export default function App() {
       <SidebarProvider>
       <BrowserRouter>
         <Routes>
-          {/* Página geral (desktop): Formulários + Acionamento + Solicitações no menu */}
-          <Route path="/" element={<DesktopOnly><Lista /></DesktopOnly>} />
-          <Route path="/acionamento" element={<DesktopOnly><Acionamento /></DesktopOnly>} />
+          <Route path="/" element={<HomeRedirect />} />
 
-          {/* PWA / celular / tablet: Solicitações (+ formulário via link) */}
+          {/* Formulários: acessível no celular após Finalizar (editar / link / PDF) */}
+          <Route path="/formularios" element={<Lista />} />
+
+          {/* PWA / campo */}
           <Route path="/solicitacoes" element={<Solicitacoes />} />
           <Route path="/formulario/:id" element={<Formulario />} />
+
+          {/* Página geral desktop */}
+          <Route path="/acionamento" element={<DesktopOnly><Acionamento /></DesktopOnly>} />
         </Routes>
         <InstallPrompt />
       </BrowserRouter>

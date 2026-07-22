@@ -211,7 +211,7 @@ export default function Lista() {
           </button>
           <button
             onClick={() => navigate('/acionamento')}
-            className="flex items-center justify-center gap-2 px-5 sm:flex-none text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
+            className="hidden lg:flex items-center justify-center gap-2 px-5 sm:flex-none text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
             <Zap size={20} strokeWidth={2.5} />
@@ -439,7 +439,7 @@ export default function Lista() {
 
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate('/acionamento') }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95"
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95"
                   style={{
                     background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
                     color: 'white',

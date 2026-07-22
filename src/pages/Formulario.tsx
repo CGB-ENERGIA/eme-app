@@ -181,7 +181,7 @@ export default function Formulario() {
         }
       }
 
-      navigate('/')
+      navigate('/formularios')
     } catch (error) {
       logError(error, { scope: 'formulario', action: 'finalizar' })
     } finally {
@@ -256,7 +256,7 @@ export default function Formulario() {
       >
         <div className="w-full px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/formularios')}
             className="p-1.5 -ml-1.5 rounded-xl transition"
             style={{ background: 'rgba(255,255,255,0.12)' }}
           >
@@ -419,7 +419,7 @@ export default function Formulario() {
 
           {currentStep === 0 ? (
             <button
-              onClick={() => { salvar(form); navigate('/') }}
+              onClick={() => { salvar(form); navigate('/formularios') }}
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 font-semibold transition"
               style={{ borderColor: '#F0C0CC', color: '#9B003C' }}
             >
