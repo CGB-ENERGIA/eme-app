@@ -20,6 +20,13 @@ export const EQUIPES_POR_BASE: Record<string, string[]> = {
     'MA-STI-O003M',
     'MA-STI-O004M',
   ],
+  Pedreiras: [
+    'MA-PDS-O001M',
+    'MA-PDS-O002M',
+    'MA-PDS-O003M',
+    'MA-PDS-O004M',
+    'MA-PDS-T001M',
+  ],
 }
 
 export function equipesDaBase(base: string | undefined | null): string[] {
