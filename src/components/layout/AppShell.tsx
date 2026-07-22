@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList, WifiOff, Wifi } from 'lucide-react'
+import { Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList, WifiOff, Wifi } from 'lucide-react'
 import LogoCGB from '../ui/LogoCGB'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useSidebar } from '../../contexts/SidebarContext'
@@ -35,10 +35,9 @@ interface Props {
   children: ReactNode
 }
 
+/** Navegação inicial da PWA: apenas Solicitações. */
 const NAV = [
-  { to: '/solicitacoes', page: 'solicitacoes' as const, label: 'Solicitações', icon: ClipboardList },
-  { to: '/', page: 'lista' as const, label: 'Formulários', icon: FileText },
-  { to: '/acionamento', page: 'acionamento' as const, label: 'Acionamento', icon: Zap },
+  { to: '/', page: 'solicitacoes' as const, label: 'Solicitações', icon: ClipboardList },
 ]
 
 function SidebarContent({ page }: { page: AppPage }) {
@@ -113,10 +112,8 @@ export default function AppShell({ page, children }: Props) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open, close])
 
-  const showBottomNav = page !== 'formulario'
-
   return (
-    <div className="min-h-svh w-full max-w-full overflow-x-hidden bg-slate-100 dark:bg-slate-950 transition-colors duration-300 lg:flex">
+    <div className="min-h-svh w-full max-w-full bg-slate-100 dark:bg-slate-950 transition-colors duration-300 lg:flex">
       {/* Sidebar — desktop only */}
       <aside
         ref={sidebarRef}
@@ -139,8 +136,7 @@ export default function AppShell({ page, children }: Props) {
       </aside>
 
       {/* Conteúdo principal */}
-      <main className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col relative">
-        {/* Botão para reabrir sidebar — desktop */}
+      <main className="flex-1 min-w-0 w-full max-w-full flex flex-col relative">
         {!open && (
           <button
             onClick={toggle}
@@ -153,10 +149,9 @@ export default function AppShell({ page, children }: Props) {
           </button>
         )}
 
-        {/* Banner offline / reconectado */}
         {showBanner && (
           <div
-            className="fixed top-0 inset-x-0 z-50 flex items-center justify-center py-2 px-4 text-white text-xs font-bold gap-2 transition-all duration-300"
+            className="sticky top-0 inset-x-0 z-50 flex items-center justify-center py-2 px-4 text-white text-xs font-bold gap-2 transition-all duration-300"
             style={{ background: online ? 'linear-gradient(90deg,#15803d,#16a34a)' : 'linear-gradient(90deg,#b91c1c,#dc2626)' }}
           >
             {online
@@ -167,36 +162,6 @@ export default function AppShell({ page, children }: Props) {
 
         {children}
       </main>
-
-      {/* Bottom nav — mobile only, oculta no formulário (tem sua própria barra de passos) */}
-      {showBottomNav && (
-        <nav
-          className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 dark:border-slate-800"
-          style={{ background: 'linear-gradient(180deg, #6B0028 0%, #7B0029 100%)' }}
-        >
-          <div className="flex items-stretch safe-bottom">
-            {NAV.map(({ to, page: p, label, icon: Icon }) => {
-              const active = page === p
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] transition-colors"
-                  style={{ color: active ? 'white' : 'rgba(255,180,200,0.65)' }}
-                >
-                  <span
-                    className="flex items-center justify-center rounded-xl w-9 h-7 transition-all"
-                    style={active ? { background: 'rgba(255,255,255,0.2)' } : undefined}
-                  >
-                    <Icon size={19} strokeWidth={active ? 2.5 : 2} />
-                  </span>
-                  <span className="text-[10px] font-bold leading-none">{label}</span>
-                </NavLink>
-              )
-            })}
-          </div>
-        </nav>
-      )}
     </div>
   )
 }
