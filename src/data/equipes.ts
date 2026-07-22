@@ -37,6 +37,15 @@ export const EQUIPES_POR_BASE: Record<string, string[]> = {
     'MA-PDT-O036M',
     'MA-PDT-T001M',
   ],
+  'Barra do Corda': [
+    'MA-BDC-O001M',
+    'MA-BDC-O002M',
+    'MA-BDC-O003M',
+    'MA-BDC-O004M',
+    'MA-BDC-O005M',
+    'MA-BDC-O006M',
+    'MA-BDC-V001M',
+  ],
 }
 
 export function equipesDaBase(base: string | undefined | null): string[] {
