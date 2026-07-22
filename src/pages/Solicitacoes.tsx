@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardList, ChevronRight, CheckCircle, Clock, Plus, Copy, Check, ExternalLink, Share2, X } from 'lucide-react'
+import { ClipboardList, ChevronRight, CheckCircle, Clock, Plus, Copy, Check, ExternalLink, Share2, X, MapPin } from 'lucide-react'
 import { criarFormularioVazio } from '../types/eme'
 import type { FormularioEME } from '../types/eme'
 import { salvarFormulario, listarFormularios, sincronizarDeSupabase } from '../store/db'
@@ -226,42 +226,61 @@ export default function Solicitacoes() {
             onChange={(e) => setDados(p => ({ ...p, incidente: e.target.value.replace(/\D/g, '') }))}
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Seletor de Base */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: showErrors && !dados.base ? '#ef4444' : '#64748b' }}>
+              BASE <span className="text-red-500">*</span>
+            </span>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+              {['Bacabal', 'Santa Inês', 'Itapecuru Mirim', 'Pedreiras', 'Presidente Dutra', 'Barra do Corda'].map((base) => {
+                const selected = dados.base === base
+                return (
+                  <button
+                    key={base}
+                    type="button"
+                    onClick={() => setDados(p => ({ ...p, base }))}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-semibold text-left transition-all active:scale-95 border-2"
+                    style={selected
+                      ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', borderColor: 'transparent', boxShadow: '0 4px 12px rgba(160,0,60,0.3)' }
+                      : { background: 'transparent', color: '#64748b', borderColor: showErrors && !dados.base ? '#f87171' : '#e2e8f0' }}
+                  >
+                    <MapPin size={13} className="flex-shrink-0" />
+                    {base}
+                  </button>
+                )
+              })}
+            </div>
+            {showErrors && !dados.base && (
+              <span className="text-xs text-red-500 font-medium">Selecione uma base</span>
+            )}
+          </div>
+
+          <>
+            <datalist id="municipios-sol">
+              <option value="AÇAILÂNDIA" /><option value="ALTO ALEGRE DO MARANHÃO" />
+              <option value="ARARI" /><option value="BACABAL" /><option value="BALSAS" />
+              <option value="BARRA DO CORDA" /><option value="BREJO" /><option value="BURITI" />
+              <option value="CAXIAS" /><option value="CHAPADINHA" /><option value="CODÓ" />
+              <option value="COROATÁ" /><option value="ESPERANTINÓPOLIS" /><option value="GRAJAÚ" />
+              <option value="IMPERATRIZ" /><option value="ITAPECURU MIRIM" /><option value="JOÃO LISBOA" />
+              <option value="LAGO DA PEDRA" /><option value="LAGO DO JUNCO" /><option value="MATÕES" />
+              <option value="MIRADOR" /><option value="OLHO D'ÁGUA DAS CUNHÃS" />
+              <option value="PARAIBANO" /><option value="PARNARAMA" /><option value="PEDREIRAS" />
+              <option value="PERITORÓ" /><option value="PRESIDENTE DUTRA" /><option value="SANTA INÊS" />
+              <option value="SÃO JOÃO DOS PATOS" /><option value="SÃO LUÍS" />
+              <option value="SÃO MATEUS DO MARANHÃO" /><option value="TIMBIRAS" />
+              <option value="TIMON" /><option value="VITORINO FREIRE" />
+            </datalist>
             <Field
-              label="Base"
+              label="Município"
               required
               showError={showErrors}
-              placeholder="Base operacional"
-              value={dados.base}
-              onChange={(e) => setDados(p => ({ ...p, base: e.target.value }))}
+              placeholder="Município"
+              list="municipios-sol"
+              value={dados.municipio}
+              onChange={(e) => setDados(p => ({ ...p, municipio: e.target.value.toUpperCase() }))}
             />
-            <>
-              <datalist id="municipios-sol">
-                <option value="AÇAILÂNDIA" /><option value="ALTO ALEGRE DO MARANHÃO" />
-                <option value="ARARI" /><option value="BACABAL" /><option value="BALSAS" />
-                <option value="BARRA DO CORDA" /><option value="BREJO" /><option value="BURITI" />
-                <option value="CAXIAS" /><option value="CHAPADINHA" /><option value="CODÓ" />
-                <option value="COROATÁ" /><option value="ESPERANTINÓPOLIS" /><option value="GRAJAÚ" />
-                <option value="IMPERATRIZ" /><option value="ITAPECURU MIRIM" /><option value="JOÃO LISBOA" />
-                <option value="LAGO DA PEDRA" /><option value="LAGO DO JUNCO" /><option value="MATÕES" />
-                <option value="MIRADOR" /><option value="OLHO D'ÁGUA DAS CUNHÃS" />
-                <option value="PARAIBANO" /><option value="PARNARAMA" /><option value="PEDREIRAS" />
-                <option value="PERITORÓ" /><option value="PRESIDENTE DUTRA" /><option value="SANTA INÊS" />
-                <option value="SÃO JOÃO DOS PATOS" /><option value="SÃO LUÍS" />
-                <option value="SÃO MATEUS DO MARANHÃO" /><option value="TIMBIRAS" />
-                <option value="TIMON" /><option value="VITORINO FREIRE" />
-              </datalist>
-              <Field
-                label="Município"
-                required
-                showError={showErrors}
-                placeholder="Município"
-                list="municipios-sol"
-                value={dados.municipio}
-                onChange={(e) => setDados(p => ({ ...p, municipio: e.target.value.toUpperCase() }))}
-              />
-            </>
-          </div>
+          </>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Field
