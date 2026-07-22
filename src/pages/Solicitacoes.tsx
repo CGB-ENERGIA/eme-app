@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardList, ChevronRight, CheckCircle, Clock, Plus, Copy, Check, ExternalLink, Share2, X, MapPin } from 'lucide-react'
+import { ClipboardList, ChevronRight, CheckCircle, Clock, Plus, Copy, Check, ExternalLink, Share2, X, MapPin, RefreshCw } from 'lucide-react'
 import { criarFormularioVazio } from '../types/eme'
 import type { FormularioEME } from '../types/eme'
-import { salvarFormulario, listarFormularios, sincronizarDeSupabase } from '../store/db'
+import { salvarFormulario, listarFormularios, sincronizarTudo } from '../store/db'
 import AppShell from '../components/layout/AppShell'
 import Field from '../components/ui/Field'
 import SectionCard from '../components/ui/SectionCard'
@@ -17,6 +17,8 @@ export default function Solicitacoes() {
   const [copiado, setCopiado] = useState(false)
   const [compartilhandoRecente, setCompartilhandoRecente] = useState<FormularioEME | null>(null)
   const [copiadoRecente, setCopiadoRecente] = useState(false)
+  const [sincronizando, setSincronizando] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   const [dados, setDados] = useState({
     incidente: '',
@@ -30,10 +32,38 @@ export default function Solicitacoes() {
 
   useEffect(() => {
     listarFormularios().then(setRecentes)
-    sincronizarDeSupabase()
-      .then((merged) => { if (merged.length > 0) setRecentes(merged) })
+    void sincronizarTudo()
+      .then(async () => {
+        const lista = await listarFormularios()
+        setRecentes(lista)
+      })
       .catch(() => { /* silencioso — offline é OK */ })
   }, [])
+
+  const sincronizar = async () => {
+    if (sincronizando) return
+    setSincronizando(true)
+    setSyncMsg(null)
+    try {
+      const result = await sincronizarTudo()
+      const lista = await listarFormularios()
+      setRecentes(lista)
+      if (result.ok) {
+        setSyncMsg(
+          result.enviados > 0
+            ? `Sincronizado: ${result.enviados} envio(s), ${result.total} no aparelho.`
+            : `Atualizado: ${result.total} formulário(s).`,
+        )
+      } else {
+        setSyncMsg(result.erro ?? 'Falha na sincronização.')
+      }
+    } catch {
+      setSyncMsg('Falha na sincronização. Tente novamente.')
+    } finally {
+      setSincronizando(false)
+      window.setTimeout(() => setSyncMsg(null), 4000)
+    }
+  }
 
   const valido =
     dados.incidente &&
@@ -132,11 +162,27 @@ export default function Solicitacoes() {
             <div className="bg-white/20 rounded-2xl p-2.5">
               <ClipboardList size={22} className="text-white" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h1 className="text-white font-black text-2xl lg:text-3xl leading-tight">Solicitações</h1>
               <p className="text-pink-200 text-sm">Abertura de atendimento emergencial</p>
             </div>
+            <button
+              type="button"
+              onClick={sincronizar}
+              disabled={sincronizando}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-2xl text-xs font-bold text-white transition active:scale-95 disabled:opacity-60"
+              style={{ background: 'rgba(255,255,255,0.18)' }}
+              title="Sincronizar com o banco"
+            >
+              <RefreshCw size={15} className={sincronizando ? 'animate-spin' : ''} />
+              {sincronizando ? 'Sync…' : 'Sync'}
+            </button>
           </div>
+          {syncMsg && (
+            <p className="mt-2 text-xs font-semibold text-pink-100/95 bg-black/15 rounded-xl px-3 py-2">
+              {syncMsg}
+            </p>
+          )}
         </div>
       </div>
 

@@ -171,6 +171,40 @@ export async function sincronizarDeSupabase(): Promise<FormularioEME[]> {
   }
 }
 
+/** Envia locais → Supabase e depois puxa atualizações remotas (botão Sync da PWA). */
+export async function sincronizarTudo(): Promise<{ ok: boolean; total: number; enviados: number; erro?: string }> {
+  if (!navigator.onLine) {
+    return { ok: false, total: 0, enviados: 0, erro: 'Sem conexão. Tente novamente quando estiver online.' }
+  }
+
+  const db = await getDB()
+  const locais = (await db.getAll('formularios')).map(sanitizeFormulario)
+  let enviados = 0
+
+  for (const form of locais) {
+    try {
+      await syncFormulario(form)
+      enviados++
+    } catch (err) {
+      logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
+    }
+  }
+
+  const merged = await sincronizarDeSupabase()
+  const total = merged.length > 0 ? merged.length : locais.length
+
+  if (enviados === 0 && locais.length > 0) {
+    return {
+      ok: false,
+      total,
+      enviados,
+      erro: 'Não foi possível enviar ao banco. Verifique a conexão e tente de novo.',
+    }
+  }
+
+  return { ok: true, total, enviados }
+}
+
 export async function listarFormularios(): Promise<FormularioEME[]> {
   const db = await getDB()
   try {
