@@ -30,7 +30,7 @@ export default function Field(props: Props) {
   if (as === 'textarea') {
     const { rows, ...textareaRest } = rest as TextareaHTMLAttributes<HTMLTextAreaElement> & { rows?: number }
     return (
-      <div className="flex flex-col gap-1">
+      <div className="min-w-0 flex flex-col gap-1">
         <label className={`text-xs font-medium uppercase tracking-wide ${hasError ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>
           {label}
           {required && <span className="text-red-500 ml-0.5">*</span>}
@@ -42,7 +42,7 @@ export default function Field(props: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="min-w-0 flex flex-col gap-1">
       <label className={`text-xs font-medium uppercase tracking-wide ${hasError ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}

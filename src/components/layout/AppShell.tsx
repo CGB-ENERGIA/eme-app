@@ -116,7 +116,7 @@ export default function AppShell({ page, children }: Props) {
   const showBottomNav = page !== 'formulario'
 
   return (
-    <div className="min-h-svh w-full bg-slate-100 dark:bg-slate-950 transition-colors duration-300 lg:flex">
+    <div className="min-h-svh w-full max-w-full overflow-x-hidden bg-slate-100 dark:bg-slate-950 transition-colors duration-300 lg:flex">
       {/* Sidebar — desktop only */}
       <aside
         ref={sidebarRef}
@@ -139,7 +139,7 @@ export default function AppShell({ page, children }: Props) {
       </aside>
 
       {/* Conteúdo principal */}
-      <main className="flex-1 min-w-0 w-full flex flex-col relative">
+      <main className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col relative">
         {/* Botão para reabrir sidebar — desktop */}
         {!open && (
           <button

@@ -13,6 +13,7 @@ html {
   border: 0;
   width: 100%;
   height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -25,6 +26,7 @@ body {
   background: #f1f5f9;
   color: #1e293b;
   overscroll-behavior: none;
+  overflow-x: hidden;
 }
 
 .dark body {
@@ -35,6 +37,7 @@ body {
 #root {
   min-height: 100svh;
   width: 100%;
+  overflow-x: hidden;
 }
 
 .safe-top {

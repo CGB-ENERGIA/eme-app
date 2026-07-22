@@ -122,12 +122,12 @@ export default function Solicitacoes() {
     <AppShell page="solicitacoes">
       {/* ── HERO ── */}
       <div
-        className="relative overflow-hidden px-4 pt-14 pb-8 lg:pt-8 lg:pb-10 lg:px-8"
+        className="relative w-full max-w-full overflow-hidden px-4 pt-14 pb-8 lg:pt-8 lg:pb-10 lg:px-8"
         style={{ background: 'linear-gradient(135deg, #6B0028 0%, #9B003C 45%, #C0014A 100%)' }}
       >
         <div className="absolute -top-20 -right-20 w-72 h-72 rotate-45 rounded-3xl bg-white/5" />
         <div className="absolute -bottom-16 -left-16 w-56 h-56 rotate-45 rounded-2xl bg-white/5" />
-        <div className="relative max-w-lg mx-auto lg:max-w-4xl">
+        <div className="relative w-full max-w-lg mx-auto lg:max-w-4xl">
           <div className="flex items-center gap-3 mb-2">
             <div className="bg-white/20 rounded-2xl p-2.5">
               <ClipboardList size={22} className="text-white" />
@@ -141,30 +141,30 @@ export default function Solicitacoes() {
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div className="max-w-lg mx-auto lg:max-w-4xl px-4 lg:px-8 py-6 pb-24 lg:pb-10 space-y-6">
+      <div className="w-full max-w-lg mx-auto lg:max-w-4xl px-4 lg:px-8 py-6 pb-24 lg:pb-10 space-y-6 overflow-x-hidden">
 
         {/* Estado: link gerado */}
         {linkGerado ? (
-          <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="w-full min-w-0 bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700">
             {/* Cabeçalho verde */}
-            <div className="px-6 py-5 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #14532d, #16a34a)' }}>
+            <div className="px-4 sm:px-6 py-5 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #14532d, #16a34a)' }}>
               <div className="bg-white/20 rounded-xl p-2">
                 <CheckCircle size={22} className="text-white" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-white font-black text-base">Solicitação criada!</p>
-                <p className="text-green-100 text-sm">Incidente {linkGerado.form.incidente} · {linkGerado.form.equipe}</p>
+                <p className="text-green-100 text-sm truncate">Incidente {linkGerado.form.incidente} · {linkGerado.form.equipe}</p>
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Envie o link abaixo para a equipe de campo preencher as fotos e evidências:
               </p>
 
               {/* Link */}
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-4 py-3 border border-slate-200 dark:border-slate-600">
-                <p className="flex-1 text-xs font-mono text-slate-600 dark:text-slate-300 truncate">{linkGerado.url}</p>
+              <div className="min-w-0 flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-3 sm:px-4 py-3 border border-slate-200 dark:border-slate-600">
+                <p className="min-w-0 flex-1 text-[11px] sm:text-xs font-mono text-slate-600 dark:text-slate-300 truncate">{linkGerado.url}</p>
                 <button
                   onClick={copiarLink}
                   className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95"
@@ -175,7 +175,7 @@ export default function Solicitacoes() {
               </div>
 
               {/* Botões de compartilhamento */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={() => compartilhar('whatsapp')}
                   className="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
@@ -195,16 +195,16 @@ export default function Solicitacoes() {
               </div>
 
               {/* Ações secundárias */}
-              <div className="flex gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <button
                   onClick={() => navigate(`/formulario/${linkGerado.form.id}?step=1`)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                 >
                   <ExternalLink size={14} /> Abrir formulário
                 </button>
                 <button
                   onClick={novasSolicitacao}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold text-white transition active:scale-95"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold text-white transition active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #9B003C, #C0014A)' }}
                 >
                   <Plus size={14} /> Nova solicitação
@@ -231,7 +231,7 @@ export default function Solicitacoes() {
             <span className="text-xs font-medium uppercase tracking-wide" style={{ color: showErrors && !dados.base ? '#ef4444' : '#64748b' }}>
               BASE <span className="text-red-500">*</span>
             </span>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {['Bacabal', 'Santa Inês', 'Itapecuru Mirim', 'Pedreiras', 'Presidente Dutra', 'Barra do Corda'].map((base) => {
                 const selected = dados.base === base
                 return (
@@ -239,7 +239,7 @@ export default function Solicitacoes() {
                     key={base}
                     type="button"
                     onClick={() => setDados(p => ({ ...p, base }))}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-semibold text-left transition-all active:scale-95 border-2"
+                    className="min-w-0 flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-semibold text-left transition-all active:scale-95 border-2"
                     style={selected
                       ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', borderColor: 'transparent', boxShadow: '0 4px 12px rgba(160,0,60,0.3)' }
                       : { background: 'transparent', color: '#64748b', borderColor: showErrors && !dados.base ? '#f87171' : '#e2e8f0' }}
@@ -282,7 +282,7 @@ export default function Solicitacoes() {
             />
           </>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Field
               label="Data Início"
               type="date"
@@ -338,7 +338,7 @@ export default function Solicitacoes() {
               {recentes.slice(0, 6).map((f) => (
                 <div
                   key={f.id}
-                  className="bg-white dark:bg-slate-800 rounded-2xl flex items-center gap-0 overflow-hidden"
+                  className="w-full min-w-0 bg-white dark:bg-slate-800 rounded-2xl flex items-center gap-0 overflow-hidden"
                   style={{ border: '1px solid', borderColor: 'rgb(226 232 240 / 0.8)' }}
                 >
                   {/* Área clicável principal */}
@@ -390,7 +390,7 @@ export default function Solicitacoes() {
             onClick={() => setCompartilhandoRecente(null)}
           >
             <div
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-2">
@@ -413,8 +413,8 @@ export default function Solicitacoes() {
               </div>
 
               {/* Link */}
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-4 py-3 border border-slate-200 dark:border-slate-600">
-                <p className="flex-1 text-xs font-mono text-slate-600 dark:text-slate-300 truncate">
+              <div className="min-w-0 flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-3 sm:px-4 py-3 border border-slate-200 dark:border-slate-600">
+                <p className="min-w-0 flex-1 text-[11px] sm:text-xs font-mono text-slate-600 dark:text-slate-300 truncate">
                   {urlDeFormulario(compartilhandoRecente)}
                 </p>
                 <button
@@ -427,7 +427,7 @@ export default function Solicitacoes() {
               </div>
 
               {/* WhatsApp / Telegram */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={() => compartilharRecente('whatsapp')}
                   className="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-95"
