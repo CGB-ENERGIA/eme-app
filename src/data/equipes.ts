@@ -27,6 +27,16 @@ export const EQUIPES_POR_BASE: Record<string, string[]> = {
     'MA-PDS-O004M',
     'MA-PDS-T001M',
   ],
+  'Presidente Dutra': [
+    'MA-PDT-O033M',
+    'MA-PDT-O031M',
+    'MA-PDT-O032M',
+    'MA-PDT-O038M',
+    'MA-PDT-O034M',
+    'MA-PDT-O035M',
+    'MA-PDT-O036M',
+    'MA-PDT-T001M',
+  ],
 }
 
 export function equipesDaBase(base: string | undefined | null): string[] {
