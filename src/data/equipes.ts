@@ -14,6 +14,12 @@ export const EQUIPES_POR_BASE: Record<string, string[]> = {
     'MA-ITM-O003M',
     'MA-ITM-O004M',
   ],
+  'Santa Inês': [
+    'MA-STI-O001M',
+    'MA-STI-O002M',
+    'MA-STI-O003M',
+    'MA-STI-O004M',
+  ],
 }
 
 export function equipesDaBase(base: string | undefined | null): string[] {
