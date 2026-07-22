@@ -19,7 +19,7 @@ export default defineConfig({
         background_color: '#f8fafc',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
+        start_url: '/solicitacoes',
         scope: '/',
         categories: ['business', 'productivity'],
         lang: 'pt-BR',

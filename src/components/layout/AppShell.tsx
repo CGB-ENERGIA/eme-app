@@ -113,11 +113,9 @@ export default function AppShell({ page, children }: Props) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open, close])
 
-  const showBottomNav = page !== 'formulario'
-
   return (
     <div className="min-h-svh w-full max-w-full bg-slate-100 dark:bg-slate-950 transition-colors duration-300 lg:flex">
-      {/* Sidebar — desktop only */}
+      {/* Sidebar — página geral (desktop) */}
       <aside
         ref={sidebarRef}
         className={`hidden lg:flex lg:flex-col lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-slate-200/80 dark:lg:border-slate-800 transition-[width] duration-300 ease-in-out overflow-hidden ${
@@ -165,36 +163,6 @@ export default function AppShell({ page, children }: Props) {
 
         {children}
       </main>
-
-      {/* Bottom nav — mobile only, oculta no formulário (tem sua própria barra de passos) */}
-      {showBottomNav && (
-        <nav
-          className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 dark:border-slate-800"
-          style={{ background: 'linear-gradient(180deg, #6B0028 0%, #7B0029 100%)' }}
-        >
-          <div className="flex items-stretch safe-bottom">
-            {NAV.map(({ to, page: p, label, icon: Icon }) => {
-              const active = page === p
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] transition-colors"
-                  style={{ color: active ? 'white' : 'rgba(255,180,200,0.65)' }}
-                >
-                  <span
-                    className="flex items-center justify-center rounded-xl w-9 h-7 transition-all"
-                    style={active ? { background: 'rgba(255,255,255,0.2)' } : undefined}
-                  >
-                    <Icon size={19} strokeWidth={active ? 2.5 : 2} />
-                  </span>
-                  <span className="text-[10px] font-bold leading-none">{label}</span>
-                </NavLink>
-              )
-            })}
-          </div>
-        </nav>
-      )}
     </div>
   )
 }

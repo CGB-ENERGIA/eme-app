@@ -141,7 +141,7 @@ export default function Solicitacoes() {
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div className="w-full max-w-lg mx-auto lg:max-w-4xl px-4 lg:px-8 py-6 pb-24 lg:pb-10 space-y-6">
+      <div className="w-full max-w-lg mx-auto lg:max-w-4xl px-4 lg:px-8 py-6 pb-10 space-y-6">
 
         {/* Estado: link gerado */}
         {linkGerado ? (
