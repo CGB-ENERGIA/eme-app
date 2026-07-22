@@ -8,6 +8,12 @@ export const EQUIPES_POR_BASE: Record<string, string[]> = {
     'MA-BCB-O005M',
     'MA-BCB-O006M',
   ],
+  'Itapecuru Mirim': [
+    'MA-ITM-O001M',
+    'MA-ITM-O002M',
+    'MA-ITM-O003M',
+    'MA-ITM-O004M',
+  ],
 }
 
 export function equipesDaBase(base: string | undefined | null): string[] {
