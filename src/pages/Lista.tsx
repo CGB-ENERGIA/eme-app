@@ -164,33 +164,33 @@ export default function Lista() {
     <AppShell page="lista">
 
       {/* ── HERO HEADER ── */}
-      <div className="relative overflow-hidden px-4 pt-14 pb-8 lg:pt-8 lg:pb-10 lg:px-8"
-        style={{ background: 'linear-gradient(135deg, #6B0028 0%, #9B003C 45%, #C0014A 100%)' }}>
+      <div
+        className="relative w-full max-w-full overflow-hidden px-3 sm:px-4 md:px-6 lg:px-8 pt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+2.5rem))] pb-6 sm:pb-8 lg:pt-8 lg:pb-10"
+        style={{ background: 'linear-gradient(135deg, #6B0028 0%, #9B003C 45%, #C0014A 100%)' }}
+      >
+        <div className="absolute -top-20 -right-20 w-72 h-72 rotate-45 rounded-3xl bg-white/5 pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-56 h-56 rotate-45 rounded-2xl bg-white/5 pointer-events-none" />
+        <div className="absolute top-6 right-10 w-16 h-16 rotate-45 rounded-xl bg-white/10 hidden lg:block pointer-events-none" />
 
-        <div className="absolute -top-20 -right-20 w-72 h-72 rotate-45 rounded-3xl bg-white/5" />
-        <div className="absolute -bottom-16 -left-16 w-56 h-56 rotate-45 rounded-2xl bg-white/5" />
-        <div className="absolute top-6 right-10 w-16 h-16 rotate-45 rounded-xl bg-white/10 hidden lg:block" />
-        <div className="absolute bottom-8 right-32 w-8 h-8 rotate-45 rounded-md bg-white/10 hidden lg:block" />
-
-        <div className="relative max-w-lg mx-auto lg:max-w-6xl lg:flex lg:items-center lg:justify-between lg:gap-12">
-          <div className="lg:flex-1">
-            <div className="flex items-center justify-between mb-6 lg:mb-4">
-              <div className="flex items-center gap-3 lg:hidden">
-                <div className="bg-white rounded-2xl p-2 shadow-lg shadow-black/20">
-                  <LogoCGB size={34} />
+        <div className="relative w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto lg:flex lg:items-center lg:justify-between lg:gap-12 min-w-0">
+          <div className="lg:flex-1 min-w-0">
+            <div className="flex items-start sm:items-center justify-between gap-2 mb-4 sm:mb-6 lg:mb-4">
+              <div className="flex items-center gap-2.5 sm:gap-3 lg:hidden min-w-0">
+                <div className="bg-white rounded-2xl p-2 shadow-lg shadow-black/20 flex-shrink-0">
+                  <LogoCGB size={32} />
                 </div>
-                <div>
-                  <p className="text-white font-black text-xl leading-none tracking-tight">CGB</p>
-                  <p className="text-pink-200 text-xs font-semibold tracking-widest uppercase">Engenharia</p>
+                <div className="min-w-0">
+                  <p className="text-white font-black text-lg sm:text-xl leading-none tracking-tight">CGB</p>
+                  <p className="text-pink-200 text-[10px] sm:text-xs font-semibold tracking-widest uppercase truncate">Engenharia</p>
                 </div>
               </div>
 
-              <div className="lg:hidden flex items-center gap-2">
+              <div className="lg:hidden flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={sincronizar}
                   disabled={sincronizando}
-                  className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-60"
                   style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
                   title="Sincronizar com o banco / R2"
                 >
@@ -199,41 +199,40 @@ export default function Lista() {
                 </button>
                 <button
                   onClick={toggle}
-                  className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-2xl text-xs font-semibold transition-all active:scale-95"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] rounded-2xl text-xs font-semibold transition-all active:scale-95"
                   style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
                   title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
                 >
-                  {theme === 'dark'
-                    ? <><Sun size={14} /> Claro</>
-                    : <><Moon size={14} /> Escuro</>}
+                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                  <span className="hidden sm:inline">{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
                 </button>
               </div>
             </div>
 
-            <h1 className="text-white font-black text-3xl lg:text-4xl leading-tight mb-1">
-              <span className="lg:hidden">Meus<br />formulários</span>
+            <h1 className="text-white font-black text-2xl sm:text-3xl lg:text-4xl leading-tight mb-1">
+              <span className="lg:hidden">Meus formulários</span>
               <span className="hidden lg:inline">Atendimento Emergencial</span>
             </h1>
-            <p className="text-pink-200 text-sm lg:text-base mb-7 lg:mb-0">
+            <p className="text-pink-200 text-xs sm:text-sm lg:text-base mb-5 sm:mb-7 lg:mb-0 max-w-md">
               <span className="lg:hidden">Edite, compartilhe o link ou gere o PDF novamente</span>
               <span className="hidden lg:inline">Formulários de campo — offline</span>
             </p>
             {syncMsg && (
-              <p className="lg:hidden mb-4 text-xs font-semibold text-pink-100/95 bg-black/15 rounded-xl px-3 py-2">
+              <p className="lg:hidden mb-4 text-xs font-semibold text-pink-100/95 bg-black/15 rounded-xl px-3 py-2 break-words">
                 {syncMsg}
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 lg:gap-4 lg:w-96 lg:flex-shrink-0">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 w-full lg:w-96 lg:flex-shrink-0">
             {[
               { label: 'Total',       value: formularios.length },
               { label: 'Rascunhos',   value: rascunhos },
               { label: 'Finalizados', value: finalizados },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-3 lg:py-4 text-center border border-white/15">
-                <p className="text-white font-black text-2xl lg:text-3xl leading-none">{carregando ? '—' : value}</p>
-                <p className="text-pink-200 text-xs mt-1 font-medium">{label}</p>
+              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-2 sm:px-3 py-2.5 sm:py-3 lg:py-4 text-center border border-white/15 min-w-0">
+                <p className="text-white font-black text-xl sm:text-2xl lg:text-3xl leading-none tabular-nums">{carregando ? '—' : value}</p>
+                <p className="text-pink-200 text-[10px] sm:text-xs mt-1 font-medium truncate">{label}</p>
               </div>
             ))}
           </div>
@@ -241,12 +240,12 @@ export default function Lista() {
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div className="max-w-lg mx-auto lg:max-w-6xl px-4 lg:px-8 pb-24 lg:pb-10">
+      <div className="w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-[max(6rem,calc(env(safe-area-inset-bottom,0px)+5rem))] lg:pb-10 min-w-0">
 
-        <div className="flex flex-col sm:flex-row gap-3 mt-5 lg:mt-8">
+        <div className="hidden lg:flex flex-col sm:flex-row gap-3 mt-5 lg:mt-8">
           <button
             onClick={novoFormulario}
-            className="hidden lg:flex flex-1 items-center justify-center gap-2 text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
+            className="flex flex-1 items-center justify-center gap-2 text-white font-bold py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #9B003C, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.35)' }}
           >
             <Plus size={20} strokeWidth={2.5} />
@@ -254,7 +253,7 @@ export default function Lista() {
           </button>
           <button
             onClick={() => navigate('/acionamento')}
-            className="hidden lg:flex items-center justify-center gap-2 px-5 sm:flex-none text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
+            className="flex items-center justify-center gap-2 px-5 text-white font-bold py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
             <Zap size={20} strokeWidth={2.5} />
@@ -262,54 +261,69 @@ export default function Lista() {
           </button>
         </div>
 
-        <p className="lg:hidden mt-5 text-sm font-semibold text-slate-600 dark:text-slate-300">
-          Após finalizar, use <span className="text-[#9B003C]">Editar</span>, <span className="text-[#9B003C]">PDF</span> ou <span className="text-[#9B003C]">Enviar</span> em cada ocorrência.
+        <p className="lg:hidden mt-4 sm:mt-5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 leading-snug">
+          Use <span className="text-[#9B003C]">Editar</span>, <span className="text-[#9B003C]">PDF</span> ou <span className="text-[#9B003C]">Enviar</span> em cada ocorrência.
         </p>
 
         {!carregando && formularios.length > 0 && (
           <>
-            <div className="relative mt-5">
+            <div className="relative mt-4 sm:mt-5 min-w-0">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
               <input
-                type="text"
-                placeholder="Pesquisar por incidente, equipe, município..."
+                type="search"
+                enterKeyHint="search"
+                placeholder="Pesquisar incidente, equipe, município..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-9 pr-9 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C0014A] focus:border-transparent transition"
+                className="w-full min-w-0 pl-9 pr-9 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C0014A] focus:border-transparent transition"
               />
               {busca && (
                 <button
                   onClick={() => setBusca('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition p-1"
+                  aria-label="Limpar busca"
                 >
                   <X size={15} />
                 </button>
               )}
             </div>
 
-            {/* Filtro por base */}
-            <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                onClick={() => setBaseAtiva(null)}
-                className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
-                style={!baseAtiva
-                  ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
-                  : { background: 'white', color: '#64748b', border: '1.5px solid #e2e8f0' }}
-              >
-                Geral
-              </button>
-              {BASES.map((base) => (
+            {/* Filtro por base — scroll horizontal em celular/tablet */}
+            <div className="-mx-3 sm:-mx-4 md:mx-0 mt-3 min-w-0">
+              <div className="flex gap-2 px-3 sm:px-4 md:px-0 overflow-x-auto pb-1 scrollbar-none touch-pan-x">
                 <button
-                  key={base}
-                  onClick={() => setBaseAtiva(b => b === base ? null : base)}
-                  className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
-                  style={baseAtiva === base
-                    ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
-                    : { background: 'white', color: '#64748b', border: '1.5px solid #e2e8f0' }}
+                  onClick={() => setBaseAtiva(null)}
+                  className={`flex-shrink-0 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all active:scale-95 ${
+                    !baseAtiva
+                      ? 'text-white'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                  }`}
+                  style={!baseAtiva
+                    ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
+                    : undefined}
                 >
-                  {base}
+                  Geral
                 </button>
-              ))}
+                {BASES.map((base) => {
+                  const active = baseAtiva === base
+                  return (
+                    <button
+                      key={base}
+                      onClick={() => setBaseAtiva(b => b === base ? null : base)}
+                      className={`flex-shrink-0 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all active:scale-95 ${
+                        active
+                          ? 'text-white'
+                          : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
+                      }`}
+                      style={active
+                        ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
+                        : undefined}
+                    >
+                      {base}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </>
         )}
@@ -320,9 +334,9 @@ export default function Lista() {
           </p>
         )}
 
-        <div className="space-y-3 mt-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3 min-w-0">
           {carregando && (
-            <div className="text-center py-16 text-slate-400">
+            <div className="text-center py-16 text-slate-400 md:col-span-2 xl:col-span-3">
               <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full mx-auto mb-3"
                 style={{ borderColor: '#C0014A', borderTopColor: 'transparent' }} />
               <p className="text-sm">Carregando registros...</p>
@@ -330,8 +344,8 @@ export default function Lista() {
           )}
 
           {!carregando && formularios.length === 0 && (
-            <div className="text-center py-16">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
+            <div className="text-center py-16 md:col-span-2 xl:col-span-3">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
                 <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
                   style={{ background: '#FFF0F4' }}>
                   <FileText size={28} style={{ color: '#C0014A' }} />
@@ -345,40 +359,38 @@ export default function Lista() {
           )}
 
           {!carregando && formularios.length > 0 && formulariosFiltrados.length === 0 && (
-            <div className="text-center py-12">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
+            <div className="text-center py-12 md:col-span-2 xl:col-span-3">
+              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
                 <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
                   style={{ background: '#FFF0F4' }}>
                   <Search size={28} style={{ color: '#C0014A' }} />
                 </div>
                 <p className="font-bold text-slate-700 dark:text-slate-200 text-base">Nenhum resultado</p>
-                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed">
-                  Nenhum formulário encontrado para "{busca}".
+                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed break-words">
+                  Nenhum formulário encontrado para &quot;{busca}&quot;.
                 </p>
               </div>
             </div>
           )}
 
           {formulariosFiltrados.map((f) => (
-            <div key={f.id}
-              className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden transition-colors duration-300"
-              style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: theme === 'dark' ? '1px solid #334155' : '1px solid #F0E4EA' }}>
-
-              {/* Faixa de status no topo */}
-              <div className="h-1.5 w-full" style={{
+            <div
+              key={f.id}
+              className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden transition-colors duration-300 min-w-0 flex flex-col"
+              style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: theme === 'dark' ? '1px solid #334155' : '1px solid #F0E4EA' }}
+            >
+              <div className="h-1.5 w-full flex-shrink-0" style={{
                 background: f.status === 'finalizado'
                   ? 'linear-gradient(90deg, #059669, #10b981)'
                   : 'linear-gradient(90deg, #d97706, #fbbf24)'
               }} />
 
-              {/* Corpo clicável */}
               <button
                 onClick={() => navigate(`/formulario/${f.id}`)}
-                className="w-full text-left px-4 pt-3 pb-3 active:bg-slate-50 dark:active:bg-slate-700 lg:hover:bg-slate-50 dark:lg:hover:bg-slate-700/50 transition-colors"
+                className="w-full min-w-0 text-left px-3 sm:px-4 pt-3 pb-3 active:bg-slate-50 dark:active:bg-slate-700 lg:hover:bg-slate-50 dark:lg:hover:bg-slate-700/50 transition-colors flex-1"
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2 min-w-0">
                   <div className="flex-1 min-w-0">
-
                     <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full mb-2 ${
                       f.status === 'finalizado'
                         ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30'
@@ -388,15 +400,15 @@ export default function Lista() {
                       {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
                     </span>
 
-                    <p className="font-black text-slate-800 dark:text-slate-100 text-lg leading-tight truncate">
+                    <p className="font-black text-slate-800 dark:text-slate-100 text-base sm:text-lg leading-tight truncate">
                       {f.incidente || 'Sem identificação'}
                     </p>
 
-                    <div className="mt-3 space-y-1.5">
+                    <div className="mt-3 space-y-1.5 min-w-0">
                       {(f.dataInicio || f.dataFinal) && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 w-14 flex-shrink-0">Período</span>
-                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 w-14 flex-shrink-0 pt-0.5">Período</span>
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 min-w-0 break-words">
                             {formatarDataServico(f.dataInicio)}
                             {f.dataFinal && f.dataFinal !== f.dataInicio && (
                               <span className="text-slate-400 dark:text-slate-500 font-normal"> → {formatarDataServico(f.dataFinal)}</span>
@@ -405,33 +417,33 @@ export default function Lista() {
                         </div>
                       )}
 
-                      <div className="flex gap-4">
+                      <div className="grid grid-cols-2 gap-2 min-w-0">
                         {f.base && (
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Base</p>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{f.base}</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{f.base}</p>
                           </div>
                         )}
                         {f.municipio && (
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Município</p>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{f.municipio}</p>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{f.municipio}</p>
                           </div>
                         )}
                       </div>
 
                       {f.equipe && (
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Equipe</p>
                           <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{f.equipe}</p>
                         </div>
                       )}
                     </div>
 
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 font-medium">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 font-medium leading-snug">
                       Salvo {formatarData(f.atualizadoEm)}
                       {f.status === 'finalizado' && (
-                        <span className="text-emerald-600 dark:text-emerald-400"> · disponível para edição</span>
+                        <span className="text-emerald-600 dark:text-emerald-400"> · editável</span>
                       )}
                     </p>
                   </div>
@@ -440,15 +452,14 @@ export default function Lista() {
                 </div>
               </button>
 
-              {/* Separador */}
-              <div className="mx-4 h-px bg-slate-100 dark:bg-slate-700" />
+              <div className="mx-3 sm:mx-4 h-px bg-slate-100 dark:bg-slate-700" />
 
-              {/* Rodapé de ações */}
-              <div className="flex flex-wrap items-center px-4 py-3 gap-2">
+              {/* Ações: grade estável no celular/tablet */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:px-4 sm:py-3">
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 border-2"
-                  style={{ borderColor: '#F0C0CC', color: '#9B003C', background: '#FFF5F8' }}
+                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 border-2"
+                  style={{ borderColor: '#F0C0CC', color: '#9B003C', background: theme === 'dark' ? 'rgba(192,1,74,0.12)' : '#FFF5F8' }}
                   title="Abrir e editar ocorrência"
                 >
                   <Pencil size={13} />
@@ -458,10 +469,9 @@ export default function Lista() {
                 <button
                   onClick={(e) => gerarPDF(e, f)}
                   disabled={exportandoPDF === f.id}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50 text-white"
                   style={{
                     background: 'linear-gradient(135deg, #7B0029, #C0014A)',
-                    color: 'white',
                     boxShadow: '0 2px 8px rgba(160,0,60,0.3)'
                   }}
                 >
@@ -473,10 +483,9 @@ export default function Lista() {
 
                 <button
                   onClick={(e) => { e.stopPropagation(); setCompartilhando(f.id) }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95"
+                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 text-white"
                   style={{
                     background: 'linear-gradient(135deg, #14532d, #16a34a)',
-                    color: 'white',
                     boxShadow: '0 2px 8px rgba(22,163,74,0.3)'
                   }}
                 >
@@ -485,21 +494,8 @@ export default function Lista() {
                 </button>
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); navigate('/acionamento') }}
-                  className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95"
-                  style={{
-                    background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
-                    color: 'white',
-                    boxShadow: '0 2px 8px rgba(37,99,235,0.3)'
-                  }}
-                >
-                  <Zap size={13} />
-                  Acion.
-                </button>
-
-                <button
                   onClick={() => setExcluindo(f.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-medium text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition ml-auto"
+                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border border-slate-200 dark:border-slate-600 transition"
                 >
                   <Trash2 size={13} />
                   Excluir
@@ -516,11 +512,11 @@ export default function Lista() {
         if (!form) return null
         return (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-3 sm:p-4 safe-bottom"
             onClick={() => !gerandoShare && setCompartilhando(null)}
           >
             <div
-              className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl"
+              className="bg-white dark:bg-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm max-h-[min(90svh,40rem)] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
