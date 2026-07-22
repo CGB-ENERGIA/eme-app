@@ -1,9 +1,32 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList } from 'lucide-react'
+import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList, WifiOff, Wifi } from 'lucide-react'
 import LogoCGB from '../ui/LogoCGB'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useSidebar } from '../../contexts/SidebarContext'
+
+function useOnlineStatus() {
+  const [online, setOnline] = useState(() => navigator.onLine)
+  const [justReconnected, setJustReconnected] = useState(false)
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setOnline(true)
+      setJustReconnected(true)
+      setTimeout(() => setJustReconnected(false), 3000)
+    }
+    const handleOffline = () => { setOnline(false); setJustReconnected(false) }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  return { online, justReconnected }
+}
 
 export type AppPage = 'lista' | 'formulario' | 'acionamento' | 'solicitacoes'
 
@@ -74,6 +97,8 @@ function SidebarContent({ page }: { page: AppPage }) {
 export default function AppShell({ page, children }: Props) {
   const { open, toggle, close } = useSidebar()
   const sidebarRef = useRef<HTMLElement>(null)
+  const { online, justReconnected } = useOnlineStatus()
+  const showBanner = !online || justReconnected
 
   useEffect(() => {
     if (!open) return
@@ -126,6 +151,18 @@ export default function AppShell({ page, children }: Props) {
           >
             <PanelLeftOpen size={18} />
           </button>
+        )}
+
+        {/* Banner offline / reconectado */}
+        {showBanner && (
+          <div
+            className="fixed top-0 inset-x-0 z-50 flex items-center justify-center py-2 px-4 text-white text-xs font-bold gap-2 transition-all duration-300"
+            style={{ background: online ? 'linear-gradient(90deg,#15803d,#16a34a)' : 'linear-gradient(90deg,#b91c1c,#dc2626)' }}
+          >
+            {online
+              ? <><Wifi size={13} /> Conexão restaurada</>
+              : <><WifiOff size={13} /> Sem conexão — alterações salvas localmente</>}
+          </div>
         )}
 
         {children}
