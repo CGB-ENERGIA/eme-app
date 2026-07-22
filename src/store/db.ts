@@ -127,16 +127,23 @@ export async function buscarFormulario(id: string): Promise<FormularioEME | unde
   const db = await getDB()
   try {
     const raw = await db.get('formularios', id)
-    if (raw) return sanitizeFormulario(raw)
+    const local = raw ? sanitizeFormulario(raw) : undefined
 
-    // Não encontrado localmente — tenta Supabase (link compartilhado em outro dispositivo)
-    const remoto = await buscarFormularioSupabase(id)
-    if (remoto) {
-      await db.put('formularios', sanitizeFormulario(remoto))
-      return sanitizeFormulario(remoto)
+    // Busca remoto para refletir edições feitas em outro dispositivo (campo ↔ escritório)
+    try {
+      const remoto = await buscarFormularioSupabase(id)
+      if (remoto) {
+        const clean = sanitizeFormulario(remoto)
+        if (!local || clean.atualizadoEm >= local.atualizadoEm) {
+          await db.put('formularios', clean)
+          return clean
+        }
+      }
+    } catch {
+      /* offline — usa local */
     }
 
-    return undefined
+    return local
   } catch (error) {
     logError(error, { scope: 'db', action: 'buscar-formulario', id })
     return undefined

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react'
 import { buscarFormulario, salvarFormulario } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
@@ -132,6 +132,7 @@ export default function Formulario() {
       return
     }
     setFinalizando(true)
+    const jaFinalizado = form.status === 'finalizado'
     try {
       const atualizado = { ...form, status: 'finalizado' as const }
       await salvarFormulario(atualizado)
@@ -141,7 +142,7 @@ export default function Formulario() {
       const result = (await exportarPDF(atualizado, 'blob')) as { blob: Blob; nome: string }
       const file = new File([result.blob], result.nome, { type: 'application/pdf' })
 
-      // Download automático do PDF
+      // Download automático do PDF (novo ou atualizado após edição)
       const url = URL.createObjectURL(result.blob)
       const a = document.createElement('a')
       a.href = url
@@ -157,7 +158,9 @@ export default function Formulario() {
           await navigator.share({
             files: [file],
             title: `EME ${atualizado.incidente}`,
-            text: `Formulário EME — Incidente ${atualizado.incidente}`,
+            text: jaFinalizado
+              ? `Formulário EME atualizado — Incidente ${atualizado.incidente}`
+              : `Formulário EME — Incidente ${atualizado.incidente}`,
           })
         } catch (error) {
           if ((error as Error).name !== 'AbortError') {
@@ -228,6 +231,7 @@ export default function Formulario() {
   }
 
   const isLastStep = currentStep === STEPS.length - 1
+  const jaFinalizado = form.status === 'finalizado'
 
   return (
     <AppShell page="formulario">
@@ -248,7 +252,14 @@ export default function Formulario() {
           </button>
 
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium" style={{ color: 'rgba(255,200,210,0.85)' }}>Formulário EME</p>
+            <p className="text-xs font-medium" style={{ color: 'rgba(255,200,210,0.85)' }}>
+              Formulário EME
+              {jaFinalizado && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                  <Pencil size={10} /> Editável
+                </span>
+              )}
+            </p>
             <p className="text-sm font-semibold truncate">{form.incidente || 'Novo atendimento'}</p>
           </div>
 
@@ -421,8 +432,16 @@ export default function Formulario() {
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition hover:brightness-110 disabled:opacity-70"
               style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 4px 16px rgba(160,0,60,0.3)' }}
             >
-              {finalizando ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-              {finalizando ? 'Gerando PDF…' : 'Finalizar'}
+              {finalizando ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : jaFinalizado ? (
+                <Pencil size={18} />
+              ) : (
+                <CheckCircle size={18} />
+              )}
+              {finalizando
+                ? (jaFinalizado ? 'Atualizando PDF…' : 'Gerando PDF…')
+                : (jaFinalizado ? 'Salvar e atualizar PDF' : 'Finalizar')}
             </button>
           ) : (
             <button

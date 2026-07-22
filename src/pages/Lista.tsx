@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2, Copy, Check, Link } from 'lucide-react'
+import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2, Copy, Check, Link, Pencil } from 'lucide-react'
 import { listarFormularios, excluirFormulario, sincronizarDeSupabase } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
@@ -383,6 +383,9 @@ export default function Lista() {
 
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 font-medium">
                       Salvo {formatarData(f.atualizadoEm)}
+                      {f.status === 'finalizado' && (
+                        <span className="text-emerald-600 dark:text-emerald-400"> · disponível para edição</span>
+                      )}
                     </p>
                   </div>
 
@@ -394,7 +397,17 @@ export default function Lista() {
               <div className="mx-4 h-px bg-slate-100 dark:bg-slate-700" />
 
               {/* Rodapé de ações */}
-              <div className="flex items-center justify-between px-4 py-3 gap-2">
+              <div className="flex flex-wrap items-center px-4 py-3 gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all active:scale-95 border-2"
+                  style={{ borderColor: '#F0C0CC', color: '#9B003C', background: '#FFF5F8' }}
+                  title="Abrir e editar ocorrência"
+                >
+                  <Pencil size={13} />
+                  Editar
+                </button>
+
                 <button
                   onClick={(e) => gerarPDF(e, f)}
                   disabled={exportandoPDF === f.id}
@@ -439,7 +452,7 @@ export default function Lista() {
 
                 <button
                   onClick={() => setExcluindo(f.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-medium text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-medium text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition ml-auto"
                 >
                   <Trash2 size={13} />
                   Excluir
