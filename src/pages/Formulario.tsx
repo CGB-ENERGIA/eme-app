@@ -58,6 +58,7 @@ export default function Formulario() {
   const [form, setForm] = useState<FormularioEME | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null)
+  const [finalizando, setFinalizando] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [stepErrors, setStepErrors] = useState<string[]>([])
   const [showEnergizacaoModal, setShowEnergizacaoModal] = useState(false)
@@ -124,16 +125,53 @@ export default function Formulario() {
   }
 
   const finalizar = async () => {
-    if (!form) return
+    if (!form || finalizando) return
     const erros = validarStep(currentStep, form)
     if (erros.length > 0) {
       setStepErrors(erros)
       return
     }
-    const atualizado = { ...form, status: 'finalizado' as const }
-    await salvarFormulario(atualizado)
-    setForm(atualizado)
-    navigate('/')
+    setFinalizando(true)
+    try {
+      const atualizado = { ...form, status: 'finalizado' as const }
+      await salvarFormulario(atualizado)
+      setForm(atualizado)
+
+      const { exportarPDF } = await import('../utils/exportPDF')
+      const result = (await exportarPDF(atualizado, 'blob')) as { blob: Blob; nome: string }
+      const file = new File([result.blob], result.nome, { type: 'application/pdf' })
+
+      // Download automático do PDF
+      const url = URL.createObjectURL(result.blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = result.nome
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+
+      // Folha nativa: WhatsApp, Telegram, etc.
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `EME ${atualizado.incidente}`,
+            text: `Formulário EME — Incidente ${atualizado.incidente}`,
+          })
+        } catch (error) {
+          if ((error as Error).name !== 'AbortError') {
+            logError(error, { scope: 'formulario', action: 'compartilhar-pdf-finalizar' })
+          }
+        }
+      }
+
+      navigate('/')
+    } catch (error) {
+      logError(error, { scope: 'formulario', action: 'finalizar' })
+    } finally {
+      setFinalizando(false)
+    }
   }
 
   const handleExportPDF = async () => {
@@ -379,11 +417,12 @@ export default function Formulario() {
           {isLastStep ? (
             <button
               onClick={finalizar}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition hover:brightness-110"
+              disabled={finalizando}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-white font-semibold shadow-md transition hover:brightness-110 disabled:opacity-70"
               style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 4px 16px rgba(160,0,60,0.3)' }}
             >
-              <CheckCircle size={18} />
-              Finalizar
+              {finalizando ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+              {finalizando ? 'Gerando PDF…' : 'Finalizar'}
             </button>
           ) : (
             <button
