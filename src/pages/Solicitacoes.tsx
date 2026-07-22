@@ -7,7 +7,9 @@ import { salvarFormulario, listarFormularios, sincronizarTudo } from '../store/d
 import AppShell from '../components/layout/AppShell'
 import Field from '../components/ui/Field'
 import SectionCard from '../components/ui/SectionCard'
+import EquipeSelect from '../components/ui/EquipeSelect'
 import { useAppRole } from '../contexts/RoleContext'
+import { equipesDaBase } from '../data/equipes'
 
 export default function Solicitacoes() {
   const navigate = useNavigate()
@@ -290,7 +292,11 @@ export default function Solicitacoes() {
                   <button
                     key={base}
                     type="button"
-                    onClick={() => setDados(p => ({ ...p, base }))}
+                    onClick={() => setDados(p => {
+                      const lista = equipesDaBase(base)
+                      const equipeOk = lista.includes(p.equipe)
+                      return { ...p, base, equipe: equipeOk ? p.equipe : '' }
+                    })}
                     className="min-w-0 flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-semibold text-left transition-all active:scale-95 border-2"
                     style={selected
                       ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', borderColor: 'transparent', boxShadow: '0 4px 12px rgba(160,0,60,0.3)' }
@@ -351,13 +357,13 @@ export default function Solicitacoes() {
               value={dados.dataFinal}
               onChange={(e) => setDados(p => ({ ...p, dataFinal: e.target.value }))}
             />
-            <Field
-              label="Equipe"
+            <EquipeSelect
+              id="equipe-solicitacao"
+              value={dados.equipe}
+              base={dados.base}
               required
               showError={showErrors}
-              placeholder="Prefixo da equipe"
-              value={dados.equipe}
-              onChange={(e) => setDados(p => ({ ...p, equipe: e.target.value }))}
+              onChange={(equipe) => setDados(p => ({ ...p, equipe }))}
             />
             <Field
               label="Supervisor"

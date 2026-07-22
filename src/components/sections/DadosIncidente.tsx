@@ -1,7 +1,9 @@
 import { MapPin } from 'lucide-react'
 import type { FormularioEME } from '../../types/eme'
+import { equipesDaBase } from '../../data/equipes'
 import SectionCard from '../ui/SectionCard'
 import Field from '../ui/Field'
+import EquipeSelect from '../ui/EquipeSelect'
 
 interface Props {
   form: FormularioEME
@@ -28,7 +30,12 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           showError={showErrors}
           placeholder="Base operacional"
           value={form.base}
-          onChange={(e) => onChange({ base: e.target.value })}
+          onChange={(e) => {
+            const base = e.target.value
+            const lista = equipesDaBase(base)
+            const equipeOk = lista.includes(form.equipe)
+            onChange({ base, equipe: equipeOk ? form.equipe : '' })
+          }}
         />
         <>
           <datalist id="municipios-ma">
@@ -95,13 +102,13 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           value={form.dataFinal}
           onChange={(e) => onChange({ dataFinal: e.target.value })}
         />
-        <Field
-          label="Equipe"
+        <EquipeSelect
+          id="equipe-formulario"
+          value={form.equipe}
+          base={form.base}
           required
           showError={showErrors}
-          placeholder="Prefixo da equipe"
-          value={form.equipe}
-          onChange={(e) => onChange({ equipe: e.target.value })}
+          onChange={(equipe) => onChange({ equipe })}
         />
         <Field
           label="Supervisor"
