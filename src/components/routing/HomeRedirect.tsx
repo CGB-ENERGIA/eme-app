@@ -1,9 +1,11 @@
 import { Navigate } from 'react-router-dom'
 import { useIsDesktopApp } from '../../hooks/useIsDesktopApp'
+import { useAppRole } from '../../contexts/RoleContext'
 
-/** Home: desktop → Formulários; celular/PWA → Solicitações. */
+/** Home: desktop → Formulários; campo → Formulários; solicitante no celular → Solicitações. */
 export default function HomeRedirect() {
   const isDesktop = useIsDesktopApp()
+  const { isCampo } = useAppRole()
 
   if (isDesktop === null) {
     return (
@@ -16,5 +18,7 @@ export default function HomeRedirect() {
     )
   }
 
-  return <Navigate to={isDesktop ? '/formularios' : '/solicitacoes'} replace />
+  if (isDesktop) return <Navigate to="/formularios" replace />
+  if (isCampo) return <Navigate to="/formularios" replace />
+  return <Navigate to="/solicitacoes" replace />
 }

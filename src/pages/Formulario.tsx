@@ -12,6 +12,7 @@ import Observacao from '../components/sections/Observacao'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
 import { logError } from '../utils/telemetry'
+import { useAppRole } from '../contexts/RoleContext'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -64,10 +65,16 @@ export default function Formulario() {
   const [showEnergizacaoModal, setShowEnergizacaoModal] = useState(false)
 
   const [searchParams] = useSearchParams()
+  const { markCampo } = useAppRole()
   const [currentStep, setCurrentStep] = useState(() => {
     const step = parseInt(searchParams.get('step') ?? '0', 10)
     return isNaN(step) ? 0 : step
   })
+
+  // Link de campo (?campo=1): marca perfil sem acesso a Solicitações
+  useEffect(() => {
+    if (searchParams.get('campo') === '1') markCampo()
+  }, [searchParams, markCampo])
 
   useEffect(() => {
     if (!id) return

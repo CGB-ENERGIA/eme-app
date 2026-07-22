@@ -25,7 +25,7 @@ export default function Lista() {
   const [sincronizando, setSincronizando] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
-  const urlDeFormulario = (id: string) => `${window.location.origin}/formulario/${id}?step=1`
+  const urlDeFormulario = (id: string) => `${window.location.origin}/formulario/${id}?step=1&campo=1`
 
   const copiarLink = async (id: string) => {
     await navigator.clipboard.writeText(urlDeFormulario(id))

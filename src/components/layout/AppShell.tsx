@@ -4,6 +4,7 @@ import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList,
 import LogoCGB from '../ui/LogoCGB'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useSidebar } from '../../contexts/SidebarContext'
+import { useAppRole } from '../../contexts/RoleContext'
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(() => navigator.onLine)
@@ -41,11 +42,14 @@ const NAV = [
   { to: '/acionamento', page: 'acionamento' as const, label: 'Acionamento', icon: Zap },
 ]
 
-/** No celular: Solicitações + Formulários (após finalizar o atendimento). */
-const NAV_MOBILE = NAV.filter((item) => item.page !== 'acionamento')
+/** No celular: solicitante vê Solicitações + Formulários; campo só Formulários. */
+const NAV_MOBILE_FULL = NAV.filter((item) => item.page !== 'acionamento')
+const NAV_MOBILE_CAMPO = NAV.filter((item) => item.page === 'lista')
 
 function SidebarContent({ page }: { page: AppPage }) {
   const { theme, toggle } = useTheme()
+  const { isCampo } = useAppRole()
+  const navItems = isCampo ? NAV.filter((item) => item.page !== 'solicitacoes') : NAV
 
   return (
     <>
@@ -66,7 +70,7 @@ function SidebarContent({ page }: { page: AppPage }) {
       </div>
 
       <nav className="flex-1 px-4 space-y-1">
-        {NAV.map(({ to, page: p, label, icon: Icon }) => (
+        {navItems.map(({ to, page: p, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -101,7 +105,9 @@ export default function AppShell({ page, children }: Props) {
   const { open, toggle, close } = useSidebar()
   const sidebarRef = useRef<HTMLElement>(null)
   const { online, justReconnected } = useOnlineStatus()
+  const { isCampo } = useAppRole()
   const showBanner = !online || justReconnected
+  const mobileNav = isCampo ? NAV_MOBILE_CAMPO : NAV_MOBILE_FULL
 
   useEffect(() => {
     if (!open) return
@@ -116,7 +122,8 @@ export default function AppShell({ page, children }: Props) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open, close])
 
-  const showBottomNav = page !== 'formulario'
+  // Campo: sem barra inferior no formulário; em Formulários também oculta (só uma aba)
+  const showBottomNav = page !== 'formulario' && !(isCampo && mobileNav.length <= 1)
 
   return (
     <div className="min-h-svh w-full max-w-full bg-slate-100 dark:bg-slate-950 transition-colors duration-300 lg:flex">
@@ -176,7 +183,7 @@ export default function AppShell({ page, children }: Props) {
           style={{ background: 'linear-gradient(180deg, #6B0028 0%, #7B0029 100%)' }}
         >
           <div className="flex items-stretch safe-bottom">
-            {NAV_MOBILE.map(({ to, page: p, label, icon: Icon }) => {
+            {mobileNav.map(({ to, page: p, label, icon: Icon }) => {
               const active = page === p
               return (
                 <NavLink

@@ -7,9 +7,11 @@ import { salvarFormulario, listarFormularios, sincronizarTudo } from '../store/d
 import AppShell from '../components/layout/AppShell'
 import Field from '../components/ui/Field'
 import SectionCard from '../components/ui/SectionCard'
+import { useAppRole } from '../contexts/RoleContext'
 
 export default function Solicitacoes() {
   const navigate = useNavigate()
+  const { markSolicitante } = useAppRole()
   const [enviando, setEnviando] = useState(false)
   const [recentes, setRecentes] = useState<FormularioEME[]>([])
   const [showErrors, setShowErrors] = useState(false)
@@ -29,6 +31,10 @@ export default function Solicitacoes() {
     equipe: '',
     supervisor: '',
   })
+
+  useEffect(() => {
+    markSolicitante()
+  }, [markSolicitante])
 
   useEffect(() => {
     listarFormularios().then(setRecentes)
@@ -88,7 +94,7 @@ export default function Solicitacoes() {
       supervisor: dados.supervisor,
     }
     await salvarFormulario(form)
-    const url = `${window.location.origin}/formulario/${form.id}?step=1`
+    const url = `${window.location.origin}/formulario/${form.id}?step=1&campo=1`
     setLinkGerado({ url, form })
     setEnviando(false)
     listarFormularios().then(setRecentes)
@@ -114,7 +120,7 @@ export default function Solicitacoes() {
   }
 
   const urlDeFormulario = (form: FormularioEME) =>
-    `${window.location.origin}/formulario/${form.id}?step=1`
+    `${window.location.origin}/formulario/${form.id}?step=1&campo=1`
 
   const copiarLinkRecente = async () => {
     if (!compartilhandoRecente) return
