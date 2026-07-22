@@ -161,6 +161,19 @@ export async function listarFormulariosSupabase(): Promise<FormularioEME[]> {
   return (data ?? []).map(fromRow)
 }
 
+export async function buscarFormularioSupabase(id: string): Promise<FormularioEME | null> {
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('formularios')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return fromRow(data as Row)
+}
+
 export async function excluirFormularioSupabase(id: string): Promise<void> {
   if (!supabase) return
 

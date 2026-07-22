@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2 } from 'lucide-react'
-import { listarFormularios, excluirFormulario } from '../store/db'
+import { listarFormularios, excluirFormulario, sincronizarDeSupabase } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
@@ -26,6 +26,11 @@ export default function Lista() {
     const lista = await listarFormularios()
     setFormularios(lista)
     setCarregando(false)
+
+    // Sync em background: puxa do Supabase e atualiza a lista se houver novidades
+    sincronizarDeSupabase()
+      .then((merged) => { if (merged.length > 0) setFormularios(merged) })
+      .catch(() => { /* silencioso — offline é OK */ })
   }
 
   useEffect(() => { carregar() }, [])

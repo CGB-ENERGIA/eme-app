@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ClipboardList, ChevronRight, CheckCircle, Clock, Plus, Copy, Check, ExternalLink } from 'lucide-react'
 import { criarFormularioVazio } from '../types/eme'
 import type { FormularioEME } from '../types/eme'
-import { salvarFormulario, listarFormularios } from '../store/db'
+import { salvarFormulario, listarFormularios, sincronizarDeSupabase } from '../store/db'
 import AppShell from '../components/layout/AppShell'
 import Field from '../components/ui/Field'
 import SectionCard from '../components/ui/SectionCard'
@@ -28,6 +28,9 @@ export default function Solicitacoes() {
 
   useEffect(() => {
     listarFormularios().then(setRecentes)
+    sincronizarDeSupabase()
+      .then((merged) => { if (merged.length > 0) setRecentes(merged) })
+      .catch(() => { /* silencioso — offline é OK */ })
   }, [])
 
   const valido =

@@ -4,7 +4,7 @@ import type { AcionamentoData } from '../types/acionamento'
 import { criarFormularioVazio, type EvidenciaItem } from '../types/eme'
 import { emptyAcionamento } from '../types/acionamento'
 import { logError } from '../utils/telemetry'
-import { syncFormulario, excluirFormularioSupabase } from '../lib/supabase'
+import { syncFormulario, excluirFormularioSupabase, listarFormulariosSupabase, buscarFormularioSupabase } from '../lib/supabase'
 
 interface AcionamentoRecord {
   name: string          // nome do PDF — chave primária
@@ -115,10 +115,40 @@ export async function buscarFormulario(id: string): Promise<FormularioEME | unde
   const db = await getDB()
   try {
     const raw = await db.get('formularios', id)
-    return raw ? sanitizeFormulario(raw) : undefined
+    if (raw) return sanitizeFormulario(raw)
+
+    // Não encontrado localmente — tenta Supabase (link compartilhado em outro dispositivo)
+    const remoto = await buscarFormularioSupabase(id)
+    if (remoto) {
+      await db.put('formularios', sanitizeFormulario(remoto))
+      return sanitizeFormulario(remoto)
+    }
+
+    return undefined
   } catch (error) {
     logError(error, { scope: 'db', action: 'buscar-formulario', id })
     return undefined
+  }
+}
+
+export async function sincronizarDeSupabase(): Promise<FormularioEME[]> {
+  try {
+    const remotos = await listarFormulariosSupabase()
+    if (remotos.length === 0) return []
+
+    const db = await getDB()
+    for (const remoto of remotos) {
+      const local = await db.get('formularios', remoto.id)
+      if (!local || remoto.atualizadoEm > local.atualizadoEm) {
+        await db.put('formularios', sanitizeFormulario(remoto))
+      }
+    }
+
+    const todos = await db.getAll('formularios')
+    return todos.map(sanitizeFormulario).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
+  } catch (err) {
+    logError(err, { scope: 'supabase', action: 'sincronizar-de-supabase' })
+    return []
   }
 }
 
@@ -126,7 +156,14 @@ export async function listarFormularios(): Promise<FormularioEME[]> {
   const db = await getDB()
   try {
     const todos = await db.getAll('formularios')
-    return todos.map(sanitizeFormulario).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
+    const lista = todos.map(sanitizeFormulario).sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
+
+    // IndexedDB vazio: tenta popular do Supabase (ex: store limpo ou novo dispositivo)
+    if (lista.length === 0) {
+      return sincronizarDeSupabase()
+    }
+
+    return lista
   } catch (error) {
     logError(error, { scope: 'db', action: 'listar-formularios' })
     return []
