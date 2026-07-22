@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2, Copy, Check, Link, Pencil } from 'lucide-react'
-import { listarFormularios, excluirFormulario, sincronizarDeSupabase } from '../store/db'
+import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2, Copy, Check, Link, Pencil, RefreshCw } from 'lucide-react'
+import { listarFormularios, excluirFormulario, sincronizarDeSupabase, sincronizarTudo } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
@@ -22,6 +22,8 @@ export default function Lista() {
   const [compartilhando, setCompartilhando] = useState<string | null>(null)
   const [gerandoShare, setGerandoShare] = useState(false)
   const [copiadoLink, setCopiadoLink] = useState(false)
+  const [sincronizando, setSincronizando] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   const urlDeFormulario = (id: string) => `${window.location.origin}/formulario/${id}?step=1`
 
@@ -51,6 +53,29 @@ export default function Lista() {
     sincronizarDeSupabase()
       .then((merged) => { if (merged.length > 0) setFormularios(merged) })
       .catch(() => { /* silencioso — offline é OK */ })
+  }
+
+  const sincronizar = async () => {
+    if (sincronizando) return
+    setSincronizando(true)
+    setSyncMsg(null)
+    try {
+      const result = await sincronizarTudo()
+      const lista = await listarFormularios()
+      setFormularios(lista)
+      setSyncMsg(
+        result.ok
+          ? (result.enviados > 0
+            ? `Sincronizado: ${result.enviados} envio(s).`
+            : `Atualizado: ${result.total} formulário(s).`)
+          : (result.erro ?? 'Falha na sincronização.'),
+      )
+    } catch {
+      setSyncMsg('Falha na sincronização. Tente novamente.')
+    } finally {
+      setSincronizando(false)
+      window.setTimeout(() => setSyncMsg(null), 4000)
+    }
   }
 
   useEffect(() => { carregar() }, [])
@@ -160,26 +185,44 @@ export default function Lista() {
                 </div>
               </div>
 
-              {/* Toggle dark/light — mobile only (desktop: sidebar) */}
-              <button
-                onClick={toggle}
-                className="lg:hidden flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-2xl text-xs font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
-                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-              >
-                {theme === 'dark'
-                  ? <><Sun size={14} /> Claro</>
-                  : <><Moon size={14} /> Escuro</>}
-              </button>
+              <div className="lg:hidden flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={sincronizar}
+                  disabled={sincronizando}
+                  className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-60"
+                  style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
+                  title="Sincronizar com o banco / R2"
+                >
+                  <RefreshCw size={14} className={sincronizando ? 'animate-spin' : ''} />
+                  {sincronizando ? 'Sync…' : 'Sync'}
+                </button>
+                <button
+                  onClick={toggle}
+                  className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-2xl text-xs font-semibold transition-all active:scale-95"
+                  style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
+                  title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+                >
+                  {theme === 'dark'
+                    ? <><Sun size={14} /> Claro</>
+                    : <><Moon size={14} /> Escuro</>}
+                </button>
+              </div>
             </div>
 
             <h1 className="text-white font-black text-3xl lg:text-4xl leading-tight mb-1">
-              <span className="lg:hidden">Atendimento<br />Emergencial</span>
+              <span className="lg:hidden">Meus<br />formulários</span>
               <span className="hidden lg:inline">Atendimento Emergencial</span>
             </h1>
             <p className="text-pink-200 text-sm lg:text-base mb-7 lg:mb-0">
-              Formulários de campo — offline
+              <span className="lg:hidden">Edite, compartilhe o link ou gere o PDF novamente</span>
+              <span className="hidden lg:inline">Formulários de campo — offline</span>
             </p>
+            {syncMsg && (
+              <p className="lg:hidden mb-4 text-xs font-semibold text-pink-100/95 bg-black/15 rounded-xl px-3 py-2">
+                {syncMsg}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-3 lg:gap-4 lg:w-96 lg:flex-shrink-0">
@@ -203,7 +246,7 @@ export default function Lista() {
         <div className="flex flex-col sm:flex-row gap-3 mt-5 lg:mt-8">
           <button
             onClick={novoFormulario}
-            className="flex-1 flex items-center justify-center gap-2 text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
+            className="hidden lg:flex flex-1 items-center justify-center gap-2 text-white font-bold py-4 lg:py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
             style={{ background: 'linear-gradient(135deg, #9B003C, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.35)' }}
           >
             <Plus size={20} strokeWidth={2.5} />
@@ -218,6 +261,10 @@ export default function Lista() {
             Acionamento
           </button>
         </div>
+
+        <p className="lg:hidden mt-5 text-sm font-semibold text-slate-600 dark:text-slate-300">
+          Após finalizar, use <span className="text-[#9B003C]">Editar</span>, <span className="text-[#9B003C]">PDF</span> ou <span className="text-[#9B003C]">Enviar</span> em cada ocorrência.
+        </p>
 
         {!carregando && formularios.length > 0 && (
           <>
@@ -291,7 +338,7 @@ export default function Lista() {
                 </div>
                 <p className="font-bold text-slate-700 dark:text-slate-200 text-base">Nenhum registro ainda</p>
                 <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed">
-                  Toque em "Novo Formulário" para registrar um atendimento emergencial.
+                  Toque em Solicitações para abrir um atendimento, ou aguarde o link da equipe.
                 </p>
               </div>
             </div>
