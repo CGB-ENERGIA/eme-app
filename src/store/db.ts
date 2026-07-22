@@ -34,9 +34,18 @@ function debouncedSync(form: FormularioEME, delayMs = 2000) {
   if (prev) clearTimeout(prev)
   const timer = setTimeout(() => {
     syncTimers.delete(form.id)
-    syncFormulario(form).catch((err) =>
-      logError(err, { scope: 'supabase', action: 'sync-formulario', id: form.id })
-    )
+    void (async () => {
+      try {
+        const comUrls = await syncFormulario(form)
+        const db = await getDB()
+        // Persiste URLs remotas localmente (evita reupload e perda no próximo sync)
+        if (comUrls !== form) {
+          await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm })
+        }
+      } catch (err) {
+        logError(err, { scope: 'supabase', action: 'sync-formulario', id: form.id })
+      }
+    })()
   }, delayMs)
   syncTimers.set(form.id, timer)
 }
@@ -57,6 +66,67 @@ function getDB() {
     })
   }
   return dbPromise
+}
+
+const FOTO_CAMPOS = [
+  'fotoAcionamento',
+  'fotoChegadaBase',
+  'fotoSaidaBase',
+  'fotoChegadaServico',
+  'fotoEnergizacao',
+  'fotoChegadaBasePosAtendimento',
+] as const
+
+/** Une dois formulários: base = mais recente, preenche fotos/evidências que estiverem vazias. */
+function mergeFormularios(a: FormularioEME, b: FormularioEME): FormularioEME {
+  const newer = a.atualizadoEm >= b.atualizadoEm ? a : b
+  const older = newer === a ? b : a
+  const merged: FormularioEME = { ...newer }
+
+  for (const campo of FOTO_CAMPOS) {
+    if (!merged[campo] && older[campo]) merged[campo] = older[campo]
+  }
+
+  const maxEv = Math.max(merged.evidencias.length, older.evidencias.length)
+  if (maxEv > 0) {
+    const evidencias = []
+    for (let i = 0; i < maxEv; i++) {
+      const n = merged.evidencias[i]
+      const o = older.evidencias[i]
+      if (!n && o) {
+        evidencias.push(o)
+      } else if (n && o) {
+        evidencias.push({
+          descricao: n.descricao || o.descricao,
+          foto1: n.foto1 || o.foto1,
+          foto2: n.foto2 || o.foto2,
+        })
+      } else if (n) {
+        evidencias.push(n)
+      }
+    }
+    merged.evidencias = evidencias
+  }
+
+  return merged
+}
+
+/** Cancela debounce e sincroniza agora (upload fotos + upsert). Atualiza IndexedDB com URLs. */
+export async function sincronizarFormularioAgora(form: FormularioEME): Promise<FormularioEME> {
+  const prev = syncTimers.get(form.id)
+  if (prev) {
+    clearTimeout(prev)
+    syncTimers.delete(form.id)
+  }
+
+  const db = await getDB()
+  const atualizado = { ...form, atualizadoEm: new Date().toISOString() }
+  await db.put('formularios', atualizado)
+
+  const comUrls = await syncFormulario(atualizado)
+  const salvo = { ...comUrls, atualizadoEm: new Date().toISOString() }
+  await db.put('formularios', salvo)
+  return salvo
 }
 
 function isRecordObject(value: unknown): value is Record<string, unknown> {
@@ -129,15 +199,13 @@ export async function buscarFormulario(id: string): Promise<FormularioEME | unde
     const raw = await db.get('formularios', id)
     const local = raw ? sanitizeFormulario(raw) : undefined
 
-    // Busca remoto para refletir edições feitas em outro dispositivo (campo ↔ escritório)
     try {
       const remoto = await buscarFormularioSupabase(id)
       if (remoto) {
         const clean = sanitizeFormulario(remoto)
-        if (!local || clean.atualizadoEm >= local.atualizadoEm) {
-          await db.put('formularios', clean)
-          return clean
-        }
+        const merged = local ? mergeFormularios(local, clean) : clean
+        await db.put('formularios', merged)
+        return merged
       }
     } catch {
       /* offline — usa local */
@@ -157,10 +225,11 @@ export async function sincronizarDeSupabase(): Promise<FormularioEME[]> {
 
     const db = await getDB()
     for (const remoto of remotos) {
-      const local = await db.get('formularios', remoto.id)
-      if (!local || remoto.atualizadoEm > local.atualizadoEm) {
-        await db.put('formularios', sanitizeFormulario(remoto))
-      }
+      const localRaw = await db.get('formularios', remoto.id)
+      const local = localRaw ? sanitizeFormulario(localRaw) : undefined
+      const clean = sanitizeFormulario(remoto)
+      const merged = local ? mergeFormularios(local, clean) : clean
+      await db.put('formularios', merged)
     }
 
     const todos = await db.getAll('formularios')
@@ -171,7 +240,7 @@ export async function sincronizarDeSupabase(): Promise<FormularioEME[]> {
   }
 }
 
-/** Envia locais → Supabase e depois puxa atualizações remotas (botão Sync da PWA). */
+/** Envia locais → Supabase (com fotos) e depois puxa atualizações remotas. */
 export async function sincronizarTudo(): Promise<{ ok: boolean; total: number; enviados: number; erro?: string }> {
   if (!navigator.onLine) {
     return { ok: false, total: 0, enviados: 0, erro: 'Sem conexão. Tente novamente quando estiver online.' }
@@ -180,12 +249,15 @@ export async function sincronizarTudo(): Promise<{ ok: boolean; total: number; e
   const db = await getDB()
   const locais = (await db.getAll('formularios')).map(sanitizeFormulario)
   let enviados = 0
+  let ultimoErro: string | undefined
 
   for (const form of locais) {
     try {
-      await syncFormulario(form)
+      const comUrls = await syncFormulario(form)
+      await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm })
       enviados++
     } catch (err) {
+      ultimoErro = err instanceof Error ? err.message : 'Erro ao sincronizar'
       logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
     }
   }
@@ -198,7 +270,7 @@ export async function sincronizarTudo(): Promise<{ ok: boolean; total: number; e
       ok: false,
       total,
       enviados,
-      erro: 'Não foi possível enviar ao banco. Verifique a conexão e tente de novo.',
+      erro: ultimoErro ?? 'Não foi possível enviar ao banco. Verifique a conexão e tente de novo.',
     }
   }
 

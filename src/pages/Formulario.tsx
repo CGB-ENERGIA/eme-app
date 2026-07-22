@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react'
-import { buscarFormulario, salvarFormulario } from '../store/db'
+import { buscarFormulario, salvarFormulario, sincronizarFormularioAgora } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import DadosIncidente from '../components/sections/DadosIncidente'
@@ -135,14 +135,27 @@ export default function Formulario() {
     const jaFinalizado = form.status === 'finalizado'
     try {
       const atualizado = { ...form, status: 'finalizado' as const }
-      await salvarFormulario(atualizado)
-      setForm(atualizado)
+
+      // Sync imediato com upload de fotos (não usa debounce — evita perder passo 2+)
+      let salvo: FormularioEME = atualizado
+      try {
+        salvo = await sincronizarFormularioAgora(atualizado)
+        setForm(salvo)
+      } catch (syncErr) {
+        // Mantém local mesmo se sync falhar; avisa e segue com PDF local
+        await salvarFormulario(atualizado)
+        setForm(atualizado)
+        logError(syncErr, { scope: 'formulario', action: 'sync-ao-finalizar' })
+        window.alert(
+          'Formulário salvo neste aparelho, mas as fotos ainda não subiram ao banco. ' +
+            'Com internet, toque em Sync na tela de Solicitações para enviar.',
+        )
+      }
 
       const { exportarPDF } = await import('../utils/exportPDF')
-      const result = (await exportarPDF(atualizado, 'blob')) as { blob: Blob; nome: string }
+      const result = (await exportarPDF(salvo, 'blob')) as { blob: Blob; nome: string }
       const file = new File([result.blob], result.nome, { type: 'application/pdf' })
 
-      // Download automático do PDF (novo ou atualizado após edição)
       const url = URL.createObjectURL(result.blob)
       const a = document.createElement('a')
       a.href = url
@@ -152,15 +165,14 @@ export default function Formulario() {
       a.remove()
       URL.revokeObjectURL(url)
 
-      // Folha nativa: WhatsApp, Telegram, etc.
       if (navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: `EME ${atualizado.incidente}`,
+            title: `EME ${salvo.incidente}`,
             text: jaFinalizado
-              ? `Formulário EME atualizado — Incidente ${atualizado.incidente}`
-              : `Formulário EME — Incidente ${atualizado.incidente}`,
+              ? `Formulário EME atualizado — Incidente ${salvo.incidente}`
+              : `Formulário EME — Incidente ${salvo.incidente}`,
           })
         } catch (error) {
           if ((error as Error).name !== 'AbortError') {

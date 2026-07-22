@@ -1,17 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
 import type { FormularioEME, EvidenciaItem } from '../types/eme'
 import { uploadFotosFormulario, isRemoteUrl } from './r2'
+import { supabase, isSupabaseConfigured } from './supabaseClient'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
-export function isSupabaseConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
-}
-
-export const supabase = isSupabaseConfigured()
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null
+export { supabase, isSupabaseConfigured }
 
 // ─── Conversão FormularioEME ↔ Supabase row ───────────────────
 
@@ -135,18 +126,39 @@ async function uploadFotosParaR2(form: FormularioEME): Promise<FormularioEME> {
 
 // ─── Operações Supabase ───────────────────────────────────────
 
-export async function syncFormulario(form: FormularioEME): Promise<void> {
-  if (!supabase) return
+export async function syncFormulario(form: FormularioEME): Promise<FormularioEME> {
+  if (!supabase) return form
 
-  // Faz upload das fotos base64 para R2 antes de salvar no Supabase
+  // Upload das fotos base64 → URL remota (R2 ou Supabase Storage)
   const formComUrls = await uploadFotosParaR2(form)
-  const row = toRow(formComUrls)
 
+  // Se ainda restar base64, o upload falhou — não grava null no banco
+  const campos = [
+    'fotoAcionamento', 'fotoChegadaBase', 'fotoSaidaBase',
+    'fotoChegadaServico', 'fotoEnergizacao', 'fotoChegadaBasePosAtendimento',
+  ] as const
+  for (const campo of campos) {
+    const val = formComUrls[campo]
+    if (val && !isRemoteUrl(val)) {
+      throw new Error(`Foto ${campo} não foi enviada ao storage — sync abortado`)
+    }
+  }
+  for (const [i, ev] of formComUrls.evidencias.entries()) {
+    if (ev.foto1 && !isRemoteUrl(ev.foto1)) {
+      throw new Error(`Evidência ${i + 1} foto1 não enviada ao storage`)
+    }
+    if (ev.foto2 && !isRemoteUrl(ev.foto2)) {
+      throw new Error(`Evidência ${i + 1} foto2 não enviada ao storage`)
+    }
+  }
+
+  const row = toRow(formComUrls)
   const { error } = await supabase
     .from('formularios')
     .upsert(row, { onConflict: 'id' })
 
   if (error) throw error
+  return formComUrls
 }
 
 export async function listarFormulariosSupabase(): Promise<FormularioEME[]> {

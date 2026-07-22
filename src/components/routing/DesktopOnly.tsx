@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom'
-import { useIsDesktopApp } from '../hooks/useIsDesktopApp'
+import { useIsDesktopApp } from '../../hooks/useIsDesktopApp'
 
 /** Rotas da página geral — só no desktop; no celular/PWA redireciona para Solicitações. */
 export default function DesktopOnly({ children }: { children: React.ReactNode }) {

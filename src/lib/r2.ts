@@ -1,7 +1,9 @@
+import { supabase } from './supabaseClient'
+
 const WORKER_URL = import.meta.env.VITE_R2_WORKER_URL as string
 const UPLOAD_SECRET = import.meta.env.VITE_UPLOAD_SECRET as string
 
-function isConfigured() {
+function isR2Configured() {
   return Boolean(WORKER_URL && UPLOAD_SECRET)
 }
 
@@ -15,20 +17,30 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([buffer], { type: mime })
 }
 
-// Retorna true se o valor é uma URL já hospedada (não base64)
-export function isRemoteUrl(value: string | null | undefined): value is string {
+/** True se já é URL hospedada (não data URL / base64). */
+export function isRemoteUrl(value: string | null | undefined): boolean {
   if (!value) return false
   return value.startsWith('http://') || value.startsWith('https://')
 }
 
-// Faz upload de uma foto base64 para o R2 via Worker
-// key: ex. "fotos/formId/chegada-base.jpg"
-export async function uploadFoto(key: string, dataUrl: string): Promise<string> {
-  if (!isConfigured()) {
-    console.warn('[r2] Worker URL ou secret não configurados — pulando upload')
-    return dataUrl
+async function uploadViaSupabase(key: string, dataUrl: string): Promise<string> {
+  if (!supabase) {
+    throw new Error('Supabase não configurado — impossível enviar fotos ao banco')
   }
 
+  const blob = dataUrlToBlob(dataUrl)
+  const { error } = await supabase.storage.from('eme-fotos').upload(key, blob, {
+    contentType: blob.type || 'image/jpeg',
+    upsert: true,
+  })
+  if (error) throw new Error(`Upload Storage falhou: ${error.message}`)
+
+  const { data } = supabase.storage.from('eme-fotos').getPublicUrl(key)
+  if (!data.publicUrl) throw new Error('Não foi possível obter URL pública da foto')
+  return data.publicUrl
+}
+
+async function uploadViaR2(key: string, dataUrl: string): Promise<string> {
   const blob = dataUrlToBlob(dataUrl)
   const url = `${WORKER_URL}/${key}`
 
@@ -50,29 +62,48 @@ export async function uploadFoto(key: string, dataUrl: string): Promise<string> 
   return json.url
 }
 
-// Remove uma foto do R2
-export async function deleteFoto(key: string): Promise<void> {
-  if (!isConfigured()) return
-  await fetch(`${WORKER_URL}/${key}`, {
-    method: 'DELETE',
-    headers: { 'X-Upload-Secret': UPLOAD_SECRET },
-  })
+/** Upload de foto base64 → URL remota (R2 se configurado, senão Supabase Storage). */
+export async function uploadFoto(key: string, dataUrl: string): Promise<string> {
+  if (isRemoteUrl(dataUrl)) return dataUrl
+
+  if (isR2Configured()) {
+    try {
+      return await uploadViaR2(key, dataUrl)
+    } catch (err) {
+      // Fallback: Storage do Supabase se o Worker R2 falhar
+      console.warn('[fotos] R2 falhou, tentando Supabase Storage', err)
+      return uploadViaSupabase(key, dataUrl)
+    }
+  }
+
+  return uploadViaSupabase(key, dataUrl)
 }
 
-// Extrai todas as fotos base64 de um formulário, faz upload e retorna
-// um mapa campo → URL remota
+// Remove uma foto do R2 (Storage cleanup opcional — ignorado se só Supabase)
+export async function deleteFoto(key: string): Promise<void> {
+  if (isR2Configured()) {
+    await fetch(`${WORKER_URL}/${key}`, {
+      method: 'DELETE',
+      headers: { 'X-Upload-Secret': UPLOAD_SECRET },
+    })
+    return
+  }
+  if (supabase) {
+    await supabase.storage.from('eme-fotos').remove([key])
+  }
+}
+
 type FotoMap = Record<string, string>
 
 export async function uploadFotosFormulario(
   formId: string,
   fotos: FotoMap
 ): Promise<FotoMap> {
-  if (!isConfigured()) return fotos
-
   const resultado: FotoMap = {}
   const uploads = Object.keys(fotos).map(async (campo) => {
     const valor: string = fotos[campo]
-    if (!valor || valor.startsWith('http://') || valor.startsWith('https://')) {
+    if (!valor) return
+    if (isRemoteUrl(valor)) {
       resultado[campo] = valor
       return
     }
