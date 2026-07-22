@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2 } from 'lucide-react'
+import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2, Copy, Check, Link } from 'lucide-react'
 import { listarFormularios, excluirFormulario, sincronizarDeSupabase } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
@@ -20,6 +20,25 @@ export default function Lista() {
   const [busca, setBusca] = useState('')
   const [compartilhando, setCompartilhando] = useState<string | null>(null)
   const [gerandoShare, setGerandoShare] = useState(false)
+  const [copiadoLink, setCopiadoLink] = useState(false)
+
+  const urlDeFormulario = (id: string) => `${window.location.origin}/formulario/${id}?step=1`
+
+  const copiarLink = async (id: string) => {
+    await navigator.clipboard.writeText(urlDeFormulario(id))
+    setCopiadoLink(true)
+    setTimeout(() => setCopiadoLink(false), 2500)
+  }
+
+  const compartilharLink = (form: FormularioEME, app: 'whatsapp' | 'telegram') => {
+    const url = urlDeFormulario(form.id)
+    const texto = `Formulário EME — Incidente ${form.incidente}\nEquipe: ${form.equipe}\nPreencha as fotos e evidências:\n${url}`
+    const href =
+      app === 'whatsapp'
+        ? `https://wa.me/?text=${encodeURIComponent(texto)}`
+        : `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`Formulário EME — Incidente ${form.incidente} — Equipe: ${form.equipe}`)}`
+    window.open(href, '_blank')
+  }
 
   const carregar = async () => {
     setCarregando(true)
@@ -419,44 +438,78 @@ export default function Lista() {
                   style={{ background: '#F0FDF4' }}>
                   <Share2 size={24} className="text-green-600" />
                 </div>
-                <h3 className="font-black text-xl text-slate-800 dark:text-slate-100">Enviar PDF</h3>
+                <h3 className="font-black text-xl text-slate-800 dark:text-slate-100">Compartilhar</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                   Incidente <span className="font-bold text-slate-700 dark:text-slate-200">{form.incidente || '—'}</span>
                 </p>
               </div>
 
-              <div className="space-y-3">
-                {/* WhatsApp */}
-                <button
-                  onClick={() => compartilharPDF(form)}
-                  disabled={gerandoShare}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #128C7E, #25D366)', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}
-                >
-                  {gerandoShare
-                    ? <Loader2 size={20} className="animate-spin" />
-                    : <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                  }
-                  WhatsApp
-                </button>
+              {/* ── Link do formulário ── */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <Link size={11} /> Link para preenchimento
+                </p>
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-3 py-2.5 border border-slate-200 dark:border-slate-600">
+                  <p className="flex-1 text-xs font-mono text-slate-600 dark:text-slate-300 truncate">
+                    {urlDeFormulario(form.id)}
+                  </p>
+                  <button
+                    onClick={() => copiarLink(form.id)}
+                    className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+                    style={{ background: copiadoLink ? '#16a34a' : '#C0014A', color: 'white' }}
+                  >
+                    {copiadoLink ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => compartilharLink(form, 'whatsapp')}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                    style={{ background: 'linear-gradient(135deg, #128C7E, #25D366)' }}
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={() => compartilharLink(form, 'telegram')}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                    style={{ background: 'linear-gradient(135deg, #0077B5, #2AABEE)' }}
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                    Telegram
+                  </button>
+                </div>
+              </div>
 
-                {/* Telegram */}
-                <button
-                  onClick={() => compartilharPDF(form)}
-                  disabled={gerandoShare}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #0077B5, #2AABEE)', boxShadow: '0 4px 12px rgba(42,171,238,0.3)' }}
-                >
-                  {gerandoShare
-                    ? <Loader2 size={20} className="animate-spin" />
-                    : <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                  }
-                  Telegram
-                </button>
+              {/* ── Compartilhar PDF ── */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <FileDown size={11} /> Enviar PDF
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => compartilharPDF(form)}
+                    disabled={gerandoShare}
+                    className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg, #128C7E, #25D366)', boxShadow: '0 4px 12px rgba(37,211,102,0.3)' }}
+                  >
+                    {gerandoShare ? <Loader2 size={16} className="animate-spin" /> : <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>}
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={() => compartilharPDF(form)}
+                    disabled={gerandoShare}
+                    className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-60"
+                    style={{ background: 'linear-gradient(135deg, #0077B5, #2AABEE)', boxShadow: '0 4px 12px rgba(42,171,238,0.3)' }}
+                  >
+                    {gerandoShare ? <Loader2 size={16} className="animate-spin" /> : <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>}
+                    Telegram
+                  </button>
+                </div>
               </div>
 
               <button
-                onClick={() => setCompartilhando(null)}
+                onClick={() => { setCompartilhando(null); setCopiadoLink(false) }}
                 disabled={gerandoShare}
                 className="w-full py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-600 font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm"
               >
