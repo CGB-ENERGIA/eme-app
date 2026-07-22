@@ -18,6 +18,7 @@ export default function Lista() {
   const [excluindo, setExcluindo] = useState<string | null>(null)
   const [exportandoPDF, setExportandoPDF] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
+  const [baseAtiva, setBaseAtiva] = useState<string | null>(null)
   const [compartilhando, setCompartilhando] = useState<string | null>(null)
   const [gerandoShare, setGerandoShare] = useState(false)
   const [copiadoLink, setCopiadoLink] = useState(false)
@@ -122,15 +123,17 @@ export default function Lista() {
   const finalizados = formularios.filter(f => f.status === 'finalizado').length
   const rascunhos   = formularios.filter(f => f.status === 'rascunho').length
 
+  const BASES = ['Bacabal', 'Santa Inês', 'Itapecuru Mirim', 'Pedreiras', 'Presidente Dutra', 'Barra do Corda']
+
   const termo = busca.toLowerCase().trim()
-  const formulariosFiltrados = termo
-    ? formularios.filter(f =>
-        f.incidente.toLowerCase().includes(termo) ||
-        f.equipe.toLowerCase().includes(termo) ||
-        f.municipio.toLowerCase().includes(termo) ||
-        f.base.toLowerCase().includes(termo)
-      )
-    : formularios
+  const formulariosFiltrados = formularios
+    .filter(f => !baseAtiva || f.base === baseAtiva)
+    .filter(f => !termo || (
+      f.incidente.toLowerCase().includes(termo) ||
+      f.equipe.toLowerCase().includes(termo) ||
+      f.municipio.toLowerCase().includes(termo) ||
+      f.base.toLowerCase().includes(termo)
+    ))
 
   return (
     <AppShell page="lista">
@@ -217,24 +220,51 @@ export default function Lista() {
         </div>
 
         {!carregando && formularios.length > 0 && (
-          <div className="relative mt-5">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Pesquisar por incidente, equipe, município..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="w-full pl-9 pr-9 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C0014A] focus:border-transparent transition"
-            />
-            {busca && (
+          <>
+            <div className="relative mt-5">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Pesquisar por incidente, equipe, município..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="w-full pl-9 pr-9 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C0014A] focus:border-transparent transition"
+              />
+              {busca && (
+                <button
+                  onClick={() => setBusca('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtro por base */}
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
               <button
-                onClick={() => setBusca('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                onClick={() => setBaseAtiva(null)}
+                className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
+                style={!baseAtiva
+                  ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
+                  : { background: 'white', color: '#64748b', border: '1.5px solid #e2e8f0' }}
               >
-                <X size={15} />
+                Geral
               </button>
-            )}
-          </div>
+              {BASES.map((base) => (
+                <button
+                  key={base}
+                  onClick={() => setBaseAtiva(b => b === base ? null : base)}
+                  className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95"
+                  style={baseAtiva === base
+                    ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
+                    : { background: 'white', color: '#64748b', border: '1.5px solid #e2e8f0' }}
+                >
+                  {base}
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {!carregando && formularios.length > 0 && (
