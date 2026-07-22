@@ -27,6 +27,20 @@ interface EmeDB extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<EmeDB>> | null = null
 
+// Debounce por ID: evita chamadas repetidas ao Supabase enquanto o usuário digita
+const syncTimers = new Map<string, ReturnType<typeof setTimeout>>()
+function debouncedSync(form: FormularioEME, delayMs = 2000) {
+  const prev = syncTimers.get(form.id)
+  if (prev) clearTimeout(prev)
+  const timer = setTimeout(() => {
+    syncTimers.delete(form.id)
+    syncFormulario(form).catch((err) =>
+      logError(err, { scope: 'supabase', action: 'sync-formulario', id: form.id })
+    )
+  }, delayMs)
+  syncTimers.set(form.id, timer)
+}
+
 function getDB() {
   if (!dbPromise) {
     dbPromise = openDB<EmeDB>('eme-db', 2, {
@@ -105,10 +119,8 @@ export async function salvarFormulario(form: FormularioEME): Promise<void> {
     logError(error, { scope: 'db', action: 'salvar-formulario', id: form.id })
     throw error
   }
-  // Sync remoto em background — não bloqueia a UI
-  syncFormulario(atualizado).catch((err) =>
-    logError(err, { scope: 'supabase', action: 'sync-formulario', id: form.id })
-  )
+  // Sync remoto com debounce de 2s — evita chamadas repetidas enquanto o usuário digita
+  debouncedSync(atualizado)
 }
 
 export async function buscarFormulario(id: string): Promise<FormularioEME | undefined> {
