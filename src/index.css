@@ -27,6 +27,11 @@ body {
   overscroll-behavior: none;
 }
 
+/* Enquanto o splash some, evita flash branco no PWA */
+html:has(#eme-splash:not(.eme-splash--hide)) body {
+  background: #9B003C;
+}
+
 .dark body {
   background: #0f172a;
   color: #f1f5f9;

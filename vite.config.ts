@@ -16,7 +16,7 @@ export default defineConfig({
         short_name: 'EME',
         description: 'Formulário de Atendimento Emergencial CGB Engenharia',
         theme_color: '#9B003C',
-        background_color: '#f8fafc',
+        background_color: '#9B003C',
         display: 'standalone',
         orientation: 'any',
         start_url: '/solicitacoes',
@@ -24,7 +24,7 @@ export default defineConfig({
         categories: ['business', 'productivity'],
         lang: 'pt-BR',
         icons: [
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],

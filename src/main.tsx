@@ -29,8 +29,22 @@ registerSW({
 initNativeApp()
 void initTelemetry()
 
+function hideEmeSplash() {
+  const splash = document.getElementById('eme-splash')
+  if (!splash) return
+  splash.classList.add('eme-splash--hide')
+  window.setTimeout(() => splash.remove(), 500)
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+
+// Esconde splash após o React montar (duplo rAF = primeira pintura)
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    window.setTimeout(hideEmeSplash, 280)
+  })
+})
