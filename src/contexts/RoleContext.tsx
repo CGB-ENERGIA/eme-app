@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 export type AppRole = 'solicitante' | 'campo'
 
-const STORAGE_KEY = 'eme-app-role'
+/** v2: padrão = campo; Solicitações só após abrir /solicitacoes. */
+const STORAGE_KEY = 'eme-app-role-v2'
 
 interface RoleContextValue {
   role: AppRole
@@ -23,7 +24,8 @@ function readStoredRole(): AppRole {
   } catch {
     /* ignore */
   }
-  return 'solicitante'
+  // Padrão: equipe de campo. Guia Solicitações só após visitar /solicitacoes.
+  return 'campo'
 }
 
 export function RoleProvider({ children }: { children: ReactNode }) {

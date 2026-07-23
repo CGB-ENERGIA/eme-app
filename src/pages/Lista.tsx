@@ -7,12 +7,14 @@ import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
+import { useAppRole } from '../contexts/RoleContext'
 import LogoCGB from '../components/ui/LogoCGB'
 import { logError } from '../utils/telemetry'
 
 export default function Lista() {
   const navigate = useNavigate()
   const { theme, toggle } = useTheme()
+  const { isSolicitante } = useAppRole()
   const [formularios, setFormularios] = useState<FormularioEME[]>([])
   const [carregando, setCarregando] = useState(true)
   const [excluindo, setExcluindo] = useState<string | null>(null)
@@ -352,7 +354,9 @@ export default function Lista() {
                 </div>
                 <p className="font-bold text-slate-700 dark:text-slate-200 text-base">Nenhum registro ainda</p>
                 <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed">
-                  Toque em Solicitações para abrir um atendimento, ou aguarde o link da equipe.
+                  {isSolicitante
+                    ? 'Toque em Solicitações para abrir um atendimento, ou aguarde o link da equipe.'
+                    : 'Aguarde o link da equipe para preencher um atendimento.'}
                 </p>
               </div>
             </div>
