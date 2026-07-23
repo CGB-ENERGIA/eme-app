@@ -240,41 +240,54 @@ export async function sincronizarDeSupabase(): Promise<FormularioEME[]> {
   }
 }
 
+type SyncResult = { ok: boolean; total: number; enviados: number; erro?: string }
+
+/** Evita sync paralelo (botão Sync + auto-sync ao reconectar). */
+let syncEmAndamento: Promise<SyncResult> | null = null
+
 /** Envia locais → Supabase (com fotos) e depois puxa atualizações remotas. */
-export async function sincronizarTudo(): Promise<{ ok: boolean; total: number; enviados: number; erro?: string }> {
-  if (!navigator.onLine) {
-    return { ok: false, total: 0, enviados: 0, erro: 'Sem conexão. Tente novamente quando estiver online.' }
-  }
+export async function sincronizarTudo(): Promise<SyncResult> {
+  if (syncEmAndamento) return syncEmAndamento
 
-  const db = await getDB()
-  const locais = (await db.getAll('formularios')).map(sanitizeFormulario)
-  let enviados = 0
-  let ultimoErro: string | undefined
-
-  for (const form of locais) {
-    try {
-      const comUrls = await syncFormulario(form)
-      await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm })
-      enviados++
-    } catch (err) {
-      ultimoErro = err instanceof Error ? err.message : 'Erro ao sincronizar'
-      logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
+  syncEmAndamento = (async (): Promise<SyncResult> => {
+    if (!navigator.onLine) {
+      return { ok: false, total: 0, enviados: 0, erro: 'Sem conexão. Tente novamente quando estiver online.' }
     }
-  }
 
-  const merged = await sincronizarDeSupabase()
-  const total = merged.length > 0 ? merged.length : locais.length
+    const db = await getDB()
+    const locais = (await db.getAll('formularios')).map(sanitizeFormulario)
+    let enviados = 0
+    let ultimoErro: string | undefined
 
-  if (enviados === 0 && locais.length > 0) {
-    return {
-      ok: false,
-      total,
-      enviados,
-      erro: ultimoErro ?? 'Não foi possível enviar ao banco. Verifique a conexão e tente de novo.',
+    for (const form of locais) {
+      try {
+        const comUrls = await syncFormulario(form)
+        await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm })
+        enviados++
+      } catch (err) {
+        ultimoErro = err instanceof Error ? err.message : 'Erro ao sincronizar'
+        logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
+      }
     }
-  }
 
-  return { ok: true, total, enviados }
+    const merged = await sincronizarDeSupabase()
+    const total = merged.length > 0 ? merged.length : locais.length
+
+    if (enviados === 0 && locais.length > 0) {
+      return {
+        ok: false,
+        total,
+        enviados,
+        erro: ultimoErro ?? 'Não foi possível enviar ao banco. Verifique a conexão e tente de novo.',
+      }
+    }
+
+    return { ok: true, total, enviados }
+  })().finally(() => {
+    syncEmAndamento = null
+  })
+
+  return syncEmAndamento
 }
 
 export async function listarFormularios(): Promise<FormularioEME[]> {

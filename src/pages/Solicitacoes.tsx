@@ -48,6 +48,17 @@ export default function Solicitacoes() {
       .catch(() => { /* silencioso — offline é OK */ })
   }, [])
 
+  useEffect(() => {
+    const onSync = (e: Event) => {
+      const detail = (e as CustomEvent<{ status?: string }>).detail
+      if (detail?.status === 'ok') {
+        void listarFormularios().then(setRecentes)
+      }
+    }
+    window.addEventListener('eme-sync', onSync)
+    return () => window.removeEventListener('eme-sync', onSync)
+  }, [])
+
   const sincronizar = async () => {
     if (sincronizando) return
     setSincronizando(true)

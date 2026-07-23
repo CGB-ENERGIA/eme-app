@@ -1,22 +1,32 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList, WifiOff, Wifi } from 'lucide-react'
+import { FileText, Zap, Sun, Moon, PanelLeftClose, PanelLeftOpen, ClipboardList, WifiOff, Wifi, RefreshCw } from 'lucide-react'
 import LogoCGB from '../ui/LogoCGB'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useSidebar } from '../../contexts/SidebarContext'
 import { useAppRole } from '../../contexts/RoleContext'
+import { EME_SYNC_EVENT, type EmeSyncDetail } from '../../lib/autoSync'
+
+type SyncBanner = 'idle' | 'syncing' | 'done' | 'error'
 
 function useOnlineStatus() {
   const [online, setOnline] = useState(() => navigator.onLine)
   const [justReconnected, setJustReconnected] = useState(false)
+  const [syncBanner, setSyncBanner] = useState<SyncBanner>('idle')
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
 
   useEffect(() => {
     const handleOnline = () => {
       setOnline(true)
       setJustReconnected(true)
-      setTimeout(() => setJustReconnected(false), 3000)
+      setTimeout(() => setJustReconnected(false), 2500)
     }
-    const handleOffline = () => { setOnline(false); setJustReconnected(false) }
+    const handleOffline = () => {
+      setOnline(false)
+      setJustReconnected(false)
+      setSyncBanner('idle')
+      setSyncMsg(null)
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -26,7 +36,46 @@ function useOnlineStatus() {
     }
   }, [])
 
-  return { online, justReconnected }
+  useEffect(() => {
+    const onSync = (e: Event) => {
+      const detail = (e as CustomEvent<EmeSyncDetail>).detail
+      if (!detail || detail.status === 'skip') return
+
+      if (detail.status === 'start') {
+        setSyncBanner('syncing')
+        setSyncMsg(null)
+        return
+      }
+
+      if (detail.status === 'ok') {
+        setSyncBanner('done')
+        setSyncMsg(
+          detail.enviados && detail.enviados > 0
+            ? `Sincronizado automaticamente · ${detail.enviados} envio(s)`
+            : 'Sincronizado automaticamente',
+        )
+        setTimeout(() => {
+          setSyncBanner('idle')
+          setSyncMsg(null)
+        }, 3500)
+        return
+      }
+
+      if (detail.status === 'error') {
+        setSyncBanner('error')
+        setSyncMsg(detail.erro ?? 'Falha na sincronização automática')
+        setTimeout(() => {
+          setSyncBanner('idle')
+          setSyncMsg(null)
+        }, 4500)
+      }
+    }
+
+    window.addEventListener(EME_SYNC_EVENT, onSync)
+    return () => window.removeEventListener(EME_SYNC_EVENT, onSync)
+  }, [])
+
+  return { online, justReconnected, syncBanner, syncMsg }
 }
 
 export type AppPage = 'lista' | 'formulario' | 'acionamento' | 'solicitacoes'
@@ -104,9 +153,9 @@ function SidebarContent({ page }: { page: AppPage }) {
 export default function AppShell({ page, children }: Props) {
   const { open, toggle, close } = useSidebar()
   const sidebarRef = useRef<HTMLElement>(null)
-  const { online, justReconnected } = useOnlineStatus()
+  const { online, justReconnected, syncBanner, syncMsg } = useOnlineStatus()
   const { isCampo } = useAppRole()
-  const showBanner = !online || justReconnected
+  const showBanner = !online || justReconnected || syncBanner !== 'idle'
   const mobileNav = isCampo ? NAV_MOBILE_CAMPO : NAV_MOBILE_FULL
 
   useEffect(() => {
@@ -165,11 +214,25 @@ export default function AppShell({ page, children }: Props) {
         {showBanner && (
           <div
             className="sticky top-0 inset-x-0 z-50 flex items-center justify-center py-2 px-4 text-white text-xs font-bold gap-2 transition-all duration-300"
-            style={{ background: online ? 'linear-gradient(90deg,#15803d,#16a34a)' : 'linear-gradient(90deg,#b91c1c,#dc2626)' }}
+            style={{
+              background: !online
+                ? 'linear-gradient(90deg,#b91c1c,#dc2626)'
+                : syncBanner === 'error'
+                  ? 'linear-gradient(90deg,#b45309,#d97706)'
+                  : 'linear-gradient(90deg,#15803d,#16a34a)',
+            }}
           >
-            {online
-              ? <><Wifi size={13} /> Conexão restaurada</>
-              : <><WifiOff size={13} /> Sem conexão — alterações salvas localmente</>}
+            {!online ? (
+              <><WifiOff size={13} /> Sem conexão — alterações salvas localmente</>
+            ) : syncBanner === 'syncing' ? (
+              <><RefreshCw size={13} className="animate-spin" /> Internet ok — sincronizando…</>
+            ) : syncBanner === 'error' ? (
+              <><Wifi size={13} /> {syncMsg ?? 'Falha na sincronização automática'}</>
+            ) : syncBanner === 'done' ? (
+              <><Wifi size={13} /> {syncMsg ?? 'Sincronizado automaticamente'}</>
+            ) : (
+              <><Wifi size={13} /> Conexão restaurada — sincronizando…</>
+            )}
           </div>
         )}
 

@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import { RoleProvider } from './contexts/RoleContext'
 import InstallPrompt from './components/ui/InstallPrompt'
+import AutoSync from './components/AutoSync'
 import DesktopOnly from './components/routing/DesktopOnly'
 import HomeRedirect from './components/routing/HomeRedirect'
 import SolicitanteOnly from './components/routing/SolicitanteOnly'
@@ -17,6 +18,7 @@ export default function App() {
       <SidebarProvider>
       <RoleProvider>
       <BrowserRouter>
+        <AutoSync />
         <Routes>
           <Route path="/" element={<HomeRedirect />} />
 

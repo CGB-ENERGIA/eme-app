@@ -82,6 +82,17 @@ export default function Lista() {
 
   useEffect(() => { carregar() }, [])
 
+  useEffect(() => {
+    const onSync = (e: Event) => {
+      const detail = (e as CustomEvent<{ status?: string }>).detail
+      if (detail?.status === 'ok') {
+        void listarFormularios().then(setFormularios)
+      }
+    }
+    window.addEventListener('eme-sync', onSync)
+    return () => window.removeEventListener('eme-sync', onSync)
+  }, [])
+
   const novoFormulario = async () => {
     const form = criarFormularioVazio()
     await salvarFormulario(form)
