@@ -1,15 +1,16 @@
-import { useEffect } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useLayoutEffect } from 'react'
 import { useAppRole } from '../../contexts/RoleContext'
 
-/** Bloqueia Solicitações para quem só preenche formulário via link. */
+/**
+ * Abrir /solicitacoes = possui o link → libera perfil solicitante.
+ * (Não redireciona quem estava como "campo"; o próprio link concede o acesso.)
+ */
 export default function SolicitanteOnly({ children }: { children: React.ReactNode }) {
-  const { isCampo, markSolicitante } = useAppRole()
+  const { markSolicitante } = useAppRole()
 
-  useEffect(() => {
-    if (!isCampo) markSolicitante()
-  }, [isCampo, markSolicitante])
+  useLayoutEffect(() => {
+    markSolicitante()
+  }, [markSolicitante])
 
-  if (isCampo) return <Navigate to="/formularios" replace />
   return children
 }
