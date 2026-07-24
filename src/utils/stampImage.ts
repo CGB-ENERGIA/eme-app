@@ -247,7 +247,10 @@ export function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-function canvasToDataUrl(canvas: HTMLCanvasElement, quality = 0.86): Promise<string> {
+/** JPEG de alta qualidade — carimbo e PDF precisam de ótima visualização. */
+const PHOTO_JPEG_QUALITY = 0.95
+
+function canvasToDataUrl(canvas: HTMLCanvasElement, quality = PHOTO_JPEG_QUALITY): Promise<string> {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       if (!blob) {

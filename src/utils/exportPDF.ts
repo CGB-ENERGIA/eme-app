@@ -63,6 +63,9 @@ function imageFormat(src: string): 'PNG' | 'JPEG' {
   return src.startsWith('data:image/png') ? 'PNG' : 'JPEG'
 }
 
+/** Qualidade JPEG no PDF (0–1). Mantém nitidez ao zoom / impressão. */
+const PDF_IMAGE_QUALITY = 0.95
+
 async function addPdfImage(doc: jsPDF, src: string, x: number, y: number, w: number, h: number): Promise<void> {
   // Re-encoda via canvas para garantir compatibilidade com Adobe Reader
   return new Promise<void>((resolve) => {
@@ -74,18 +77,22 @@ async function addPdfImage(doc: jsPDF, src: string, x: number, y: number, w: num
         canvas.height = img.naturalHeight
         const ctx = canvas.getContext('2d')
         if (!ctx) throw new Error('no ctx')
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
         ctx.drawImage(img, 0, 0)
-        const jpeg = canvas.toDataURL('image/jpeg', 0.88)
-        doc.addImage(jpeg, 'JPEG', x, y, w, h)
+        const jpeg = canvas.toDataURL('image/jpeg', PDF_IMAGE_QUALITY)
+        // compression NONE: evita segunda perda ao embutir no PDF
+        doc.addImage(jpeg, 'JPEG', x, y, w, h, undefined, 'NONE')
       } catch {
         try {
           const fmt = imageFormat(src)
-          doc.addImage(src, fmt, x, y, w, h)
+          doc.addImage(src, fmt, x, y, w, h, undefined, 'NONE')
         } catch { /* ignorar imagem inválida */ }
       }
       resolve()
     }
     img.onerror = () => resolve()
+    img.crossOrigin = 'anonymous'
     img.src = src
   })
 }
