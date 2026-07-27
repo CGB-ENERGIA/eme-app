@@ -110,7 +110,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
               type="text"
               value={label}
               onChange={(e) =>
-                onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-0-9°]/g, '').toUpperCase())
+                onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-0-9°#/]/g, '').toUpperCase())
               }
               onFocus={() => setShowSugg(true)}
               onBlur={() => setTimeout(() => setShowSugg(false), 150)}
