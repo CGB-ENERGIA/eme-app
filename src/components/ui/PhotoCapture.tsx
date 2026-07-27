@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import { useRef, useState, useCallback } from 'react'
+import { Camera, Upload, X, Loader2, Clipboard } from 'lucide-react'
 import CameraCapture, { captureViaNativeInput } from './CameraCapture'
 import { processGalleryPhoto, getBestCoordinates, isCameraSupported, type PhotoCoords } from '../../utils/stampImage'
 
@@ -49,6 +49,32 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
     }
   }
 
+  const handlePaste = useCallback(async (e: React.ClipboardEvent | ClipboardEvent) => {
+    const items = Array.from((e as ClipboardEvent).clipboardData?.items ?? [])
+    const imageItem = items.find(item => item.type.startsWith('image/'))
+    if (!imageItem) return
+    e.preventDefault?.()
+    const file = imageItem.getAsFile()
+    if (!file) return
+    await handleFile(file, false)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const colarDoClipboard = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const item of clipboardItems) {
+        const imageType = item.types.find(t => t.startsWith('image/'))
+        if (imageType) {
+          const blob = await item.getType(imageType)
+          await handleFile(new File([blob], 'print.png', { type: imageType }), false)
+          return
+        }
+      }
+    } catch {
+      // Fallback: Clipboard API não disponível — usuário deve usar Ctrl+V na área
+    }
+  }
+
   const hasError = showError && required && !value
 
   return (
@@ -88,11 +114,15 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
           </button>
         </div>
       ) : (
-        <div className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${
-          hasError
-            ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
-            : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700'
-        }`}>
+        <div
+          className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${
+            hasError
+              ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
+              : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700'
+          }`}
+          onPaste={handlePaste}
+          tabIndex={0}
+        >
           {processing ? (
             <>
               <Loader2 size={28} className="animate-spin" style={{ color: '#C0014A' }} />
@@ -122,9 +152,19 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
                   </div>
                   <span className="text-xs font-medium">Galeria</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={colarDoClipboard}
+                  className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                >
+                  <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-2.5">
+                    <Clipboard size={20} />
+                  </div>
+                  <span className="text-xs font-medium">Colar</span>
+                </button>
               </div>
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center px-3">
-                Câmera mostra data, INC, equipe e GPS antes de fotografar
+                Câmera · Galeria · Cole print com Ctrl+V
               </span>
             </>
           )}
