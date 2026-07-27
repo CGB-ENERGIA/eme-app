@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Upload, FileDown, Loader2, Sun, Moon, X, ZoomIn, ZoomOut, Save, CheckCircle, Trash2 } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
@@ -52,7 +52,8 @@ function incFromPdfName(name: string): string {
 
 // ── página principal ─────────────────────────────────────────
 export default function Acionamento() {
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
+  const location  = useLocation()
   const { theme, toggle } = useTheme()
 
   const [pdfBytes, setPdfBytes]     = useState<Uint8Array | null>(null)
@@ -75,6 +76,34 @@ export default function Acionamento() {
   }, [])
 
   useEffect(() => { recarregarLista() }, [recarregarLista])
+
+  // Abre direto em modo edição quando navegado a partir de um formulário da lista
+  const initDone = useRef(false)
+  useEffect(() => {
+    if (initDone.current) return
+    const state = location.state as { incidente?: string } | null
+    if (!state?.incidente) return
+    initDone.current = true
+    const nome = `EME_${state.incidente}`
+    buscarAcionamento(nome).then(async (existing) => {
+      if (existing) {
+        setData(existing.data)
+        setPdfName(existing.name)
+        if (existing.pdfBytes.byteLength > 0) {
+          setPdfBytes(new Uint8Array(existing.pdfBytes))
+          await renderPages(new Uint8Array(existing.pdfBytes).buffer)
+        } else {
+          setEditando(true)
+        }
+      } else {
+        setData(emptyAcionamento)
+        setPdfName(nome)
+        setEditando(true)
+        await salvarAcionamento({ name: nome, data: emptyAcionamento, pdfBytes: new Uint8Array(), savedAt: new Date().toISOString() })
+        await recarregarLista()
+      }
+    })
+  }, [location.state, recarregarLista])
 
   const iniciarSemPdf = useCallback(async () => {
     const now = new Date()

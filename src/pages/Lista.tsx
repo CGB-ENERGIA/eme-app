@@ -469,6 +469,18 @@ export default function Lista() {
 
               <div className="mx-3 sm:mx-4 h-px bg-slate-100 dark:bg-slate-700" />
 
+              {/* Botão Acionamento */}
+              <div className="px-3 sm:px-4 pt-3 pb-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente } }) }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                  style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 2px 8px rgba(37,99,235,0.25)' }}
+                >
+                  <Zap size={13} />
+                  Acionamento
+                </button>
+              </div>
+
               {/* Ações: grade estável no celular/tablet */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:px-4 sm:py-3">
                 <button
