@@ -560,7 +560,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
       doc.setFontSize(7.5)
       doc.setTextColor(...CGB.dark)
       doc.text(`EVIDÊNCIA ${idx + 1}`, MX + 7, y + 5.5)
-      const iy = y + 10
+      let iy = y + 10
 
       const evFotoW = (COL - 16) / 2
       const evFotoH = evFotoW * 0.72

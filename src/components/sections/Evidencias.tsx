@@ -16,7 +16,7 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
   }
 
   const adicionar = () => {
-    onChange({ evidencias: [...form.evidencias, { descricao: '', foto1: null, foto2: null }] })
+    onChange({ evidencias: [...form.evidencias, { descricao: '', descricao2: '', foto1: null, foto2: null }] })
   }
 
   const remover = (idx: number) => {

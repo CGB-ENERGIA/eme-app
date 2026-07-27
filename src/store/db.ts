@@ -97,6 +97,7 @@ function mergeFormularios(a: FormularioEME, b: FormularioEME): FormularioEME {
       } else if (n && o) {
         evidencias.push({
           descricao: n.descricao || o.descricao,
+          descricao2: n.descricao2 || o.descricao2,
           foto1: n.foto1 || o.foto1,
           foto2: n.foto2 || o.foto2,
         })
