@@ -1,26 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Upload, FileDown, Loader2, Sun, Moon, X, ZoomIn, ZoomOut, Save, CheckCircle, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Sun, Moon, Save, CheckCircle, Trash2, Plus } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
 import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento } from '../store/db'
 import { type AcionamentoData, emptyAcionamento } from '../types/acionamento'
 import PhotoCapture from '../components/ui/PhotoCapture'
-import { logError } from '../utils/telemetry'
 
-// ── helpers ──────────────────────────────────────────────────
-function fmtDT(v: string) {
-  if (!v) return ''
-  try {
-    const d = new Date(v)
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    })
-  } catch { return v }
-}
-
-// ── sub-componentes ──────────────────────────────────────────
 function Label({ children }: { children: React.ReactNode }) {
   return (
     <label className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -45,30 +31,21 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
   )
 }
 
-function incFromPdfName(name: string): string {
+function incFromName(name: string): string {
   const m = name.match(/^EME_([^_.]+)/i)
   return m?.[1] ?? ''
 }
 
-// ── página principal ─────────────────────────────────────────
 export default function Acionamento() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { theme, toggle } = useTheme()
 
-  const [pdfBytes, setPdfBytes]     = useState<Uint8Array | null>(null)
-  const [pdfPages, setPdfPages]     = useState<string[]>([])
-  const [pdfName, setPdfName]       = useState('')
-  const [loadingPdf, setLoadingPdf] = useState(false)
-  const [zoom, setZoom]             = useState(1)
-  const [data, setData]             = useState<AcionamentoData>(emptyAcionamento)
-  const [exporting, setExporting]   = useState(false)
-  const [saveState, setSaveState]   = useState<'idle' | 'saving' | 'saved'>('idle')
-  const [savedList, setSavedList]   = useState<{ name: string; savedAt: string }[]>([])
-  const [showSavedList, setShowSavedList] = useState(false)
-  const [editando, setEditando]           = useState(false)
-
-  const pdfInputRef = useRef<HTMLInputElement>(null)
+  const [pdfName, setPdfName]     = useState('')
+  const [data, setData]           = useState<AcionamentoData>(emptyAcionamento)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [savedList, setSavedList] = useState<{ name: string; savedAt: string }[]>([])
+  const [editando, setEditando]   = useState(false)
 
   const recarregarLista = useCallback(async () => {
     const lista = await listarAcionamentos()
@@ -89,12 +66,7 @@ export default function Acionamento() {
       if (existing) {
         setData(existing.data)
         setPdfName(existing.name)
-        if (existing.pdfBytes.byteLength > 0) {
-          setPdfBytes(new Uint8Array(existing.pdfBytes))
-          await renderPages(new Uint8Array(existing.pdfBytes).buffer)
-        } else {
-          setEditando(true)
-        }
+        setEditando(true)
       } else {
         setData(emptyAcionamento)
         setPdfName(nome)
@@ -105,30 +77,13 @@ export default function Acionamento() {
     })
   }, [location.state, recarregarLista])
 
-  const iniciarSemPdf = useCallback(async () => {
-    const now = new Date()
-    const d   = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
-    const h   = `${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`
-    const nome = `ACIONAMENTO_${d}_${h}`
-    setData(emptyAcionamento)
-    setPdfName(nome)
-    setEditando(true)
-    await salvarAcionamento({ name: nome, data: emptyAcionamento, pdfBytes: new Uint8Array(), savedAt: now.toISOString() })
-    await recarregarLista()
-  }, [recarregarLista])
-
-  const salvar = useCallback(async (name: string, d: AcionamentoData, bytes?: Uint8Array) => {
+  const salvar = useCallback(async (name: string, d: AcionamentoData) => {
     setSaveState('saving')
-    await salvarAcionamento({
-      name,
-      data: d,
-      pdfBytes: bytes ?? pdfBytes ?? new Uint8Array(),
-      savedAt: new Date().toISOString(),
-    })
+    await salvarAcionamento({ name, data: d, pdfBytes: new Uint8Array(), savedAt: new Date().toISOString() })
     await recarregarLista()
     setSaveState('saved')
     setTimeout(() => setSaveState('idle'), 2000)
-  }, [pdfBytes, recarregarLista])
+  }, [recarregarLista])
 
   const set = (partial: Partial<AcionamentoData>) => {
     setData((prev) => {
@@ -138,187 +93,22 @@ export default function Acionamento() {
     })
   }
 
-  // ── importar PDF ─────────────────────────────────────────
-  const handlePdfImport = async (file: File) => {
-    setLoadingPdf(true)
-    const name = file.name
-    setPdfName(name)
-    try {
-      const buffer = await file.arrayBuffer()
-      const bytes = new Uint8Array(buffer)
-      // carrega dados salvos para esse PDF (se existir)
-      const saved = await buscarAcionamento(name)
-      if (saved) {
-        setData(saved.data)
-        setPdfBytes(new Uint8Array(bytes))
-      } else {
-        setData(emptyAcionamento)
-        setPdfBytes(new Uint8Array(bytes))
-        // salva o PDF imediatamente para ficar disponível na lista
-        await salvarAcionamento({ name, data: emptyAcionamento, pdfBytes: new Uint8Array(bytes), savedAt: new Date().toISOString() })
-        await recarregarLista()
-      }
-      await renderPages(new Uint8Array(bytes).buffer)
-    } finally {
-      setLoadingPdf(false)
-    }
-  }
+  const novoAcionamento = useCallback(async () => {
+    const now = new Date()
+    const d = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
+    const h = `${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`
+    const nome = `ACIONAMENTO_${d}_${h}`
+    setData(emptyAcionamento)
+    setPdfName(nome)
+    setEditando(true)
+    await salvarAcionamento({ name: nome, data: emptyAcionamento, pdfBytes: new Uint8Array(), savedAt: now.toISOString() })
+    await recarregarLista()
+  }, [recarregarLista])
 
-  const renderPages = async (buffer: ArrayBuffer) => {
-    // usa pdfjs via CDN worker para não precisar configurar bundler
-    try {
-      const pdfjsLib = await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
-
-      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
-      const pages: string[] = []
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i)
-        const viewport = page.getViewport({ scale: 2 })
-        const canvas = document.createElement('canvas')
-        canvas.width  = viewport.width
-        canvas.height = viewport.height
-        const ctx = canvas.getContext('2d')!
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise
-        pages.push(canvas.toDataURL('image/jpeg', 0.92))
-      }
-      setPdfPages(pages)
-    } catch (error) {
-      logError(error, { scope: 'acionamento', action: 'render-pages' })
-      setPdfPages([])
-    }
-  }
-
-  // ── gerar PDF mesclado ───────────────────────────────────
-  const handleExport = async () => {
-    if (!pdfBytes) return
-    setExporting(true)
-    try {
-      const { PDFDocument, rgb, StandardFonts } = await import('pdf-lib')
-      const pdfDoc  = await PDFDocument.load(new Uint8Array(pdfBytes))
-      const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica)
-      const pages   = pdfDoc.getPages()
-      const page    = pages[0]
-      const { height } = page.getSize()
-
-      // Lê coordenadas reais gravadas no metadata pelo exportPDF.ts
-      const subject = pdfDoc.getSubject() ?? ''
-      const match   = subject.match(/EME-ACIONAMENTO:([^|]+)/)
-      if (!match) {
-        alert('Este PDF não é compatível com o editor de acionamento. Gere um novo PDF pelo app.')
-        return
-      }
-
-      const [y1, y2, y3, respW, halfRow, labelH, pepRowH, MX] =
-        match[1].split(',').map(Number)
-
-      // pdf-lib: origem no canto inferior esquerdo; jsPDF: origem no topo
-      // conversão: ptY = (PAGE_H_mm - mmY) * pt_per_mm
-      const PT = 2.8346  // pt por mm (72pt/inch ÷ 25.4mm/inch)
-      // altura real da página em mm a partir do tamanho em pt
-      const pageHmm = height / PT
-
-      const mmToPageY = (mmFromTop: number, cellH: number) =>
-        // posiciona o texto na linha de escrita: topo da célula + cellH - 4mm (acima da linha guia)
-        (pageHmm - mmFromTop - cellH + 4) * PT
-
-      const ink = rgb(0.12, 0.16, 0.23)
-
-      const white = rgb(1, 1, 1)
-
-      const writeCell = (text: string, xMm: number, yTopMm: number, cellH: number, maxWmm: number) => {
-        if (!text) return
-        const x    = xMm * PT
-        const padX = 8   // mesmo recuo interno usado pelo jsPDF (MX + 3mm ≈ 8.5pt)
-        const y    = mmToPageY(yTopMm, cellH)
-        // cobre a linha guia com retângulo branco
-        page.drawRectangle({
-          x: x + padX - 2,
-          y: y - 2,
-          width: maxWmm * PT - padX,
-          height: 3,
-          color: white,
-        })
-        let t = text
-        while (t.length > 1 && fontReg.widthOfTextAtSize(t, 9) > maxWmm * PT - padX - 4)
-          t = t.slice(0, -1)
-        page.drawText(t, { x: x + padX, y, size: 9, font: fontReg, color: ink })
-      }
-
-      // Linha 1
-      writeCell(data.responsavelEqtl,        MX,           y1, labelH, respW)
-      writeCell(data.via,                    MX + respW,   y1, labelH, 210 - MX * 2 - respW)
-
-      // Linha 2
-      writeCell(fmtDT(data.dataHoraAcionamento),  MX,            y2, labelH, halfRow)
-      writeCell(fmtDT(data.dataHoraChegadaBase),  MX + halfRow,  y2, labelH, halfRow)
-
-      // Linha 3
-      const quebraTexto = data.quebraProgramacao === 'sim'
-        ? `Sim${data.pep ? `  —  PEP: ${data.pep}` : ''}`
-        : data.quebraProgramacao === 'nao' ? 'Não' : ''
-      writeCell(quebraTexto, MX, y3, pepRowH, 210 - MX * 2)
-
-      // Foto de acionamento — posição exata gravada pelo exportPDF.ts (FOTO-AC)
-      if (data.fotoAcionamento) {
-        try {
-          const imgData  = data.fotoAcionamento.split(',')[1]
-          const imgBytes = Uint8Array.from(atob(imgData), c => c.charCodeAt(0))
-          const img = data.fotoAcionamento.startsWith('data:image/png')
-            ? await pdfDoc.embedPng(imgBytes)
-            : await pdfDoc.embedJpg(imgBytes)
-
-          const fotoMeta = subject.match(/FOTO-AC:([^|]+)/)
-          let targetPage = pages[1]
-          let xMm = MX + 1
-          let yMm = 27
-          let wMm = (210 - MX * 2 - 4) / 2 - 2
-          let hMm = wMm * 0.72 - 1
-
-          if (fotoMeta) {
-            const [pageNum, x, y, w, h] = fotoMeta[1].split(',').map(Number)
-            const pageIdx = pageNum - 1
-            if (pageIdx >= 0 && pageIdx < pages.length) {
-              targetPage = pages[pageIdx]
-              xMm = x
-              yMm = y
-              wMm = w
-              hMm = h
-            }
-          }
-
-          const { height: pagePt } = targetPage.getSize()
-          const pageHmm = pagePt / PT
-          const imgW = wMm * PT
-          const imgH = hMm * PT
-          const imgX = xMm * PT
-          const imgY = (pageHmm - yMm - hMm) * PT
-
-          targetPage.drawImage(img, { x: imgX, y: imgY, width: imgW, height: imgH })
-        } catch { /* ignora */ }
-      }
-
-      const mergedBytes = await pdfDoc.save()
-      const blob = new Blob([new Uint8Array(mergedBytes)], { type: 'application/pdf' })
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href     = url
-      a.download = pdfName.replace('.pdf', '') + '_acionamento.pdf'
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      logError(error, { scope: 'acionamento', action: 'exportar-pdf' })
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  // ── drag & drop ──────────────────────────────────────────
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    const file = e.dataTransfer.files[0]
-    if (file?.type === 'application/pdf') handlePdfImport(file)
+  const fecharEdicao = () => {
+    setEditando(false)
+    setPdfName('')
+    setData(emptyAcionamento)
   }
 
   return (
@@ -329,18 +119,20 @@ export default function Acionamento() {
       <div className="sticky top-0 z-40 text-white shadow-lg"
         style={{ background: 'linear-gradient(135deg, #7B0029 0%, #C0014A 100%)' }}>
         <div className="px-4 lg:px-8 py-3 flex items-center gap-3 max-w-7xl mx-auto w-full">
-          <button onClick={() => navigate('/')}
+          <button
+            onClick={editando ? fecharEdicao : () => navigate('/')}
             className="p-1.5 -ml-1.5 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.12)' }}>
+            style={{ background: 'rgba(255,255,255,0.12)' }}
+          >
             <ArrowLeft size={20} />
           </button>
 
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium" style={{ color: 'rgba(255,200,210,0.85)' }}>
-              Editor de Acionamento
+              {editando ? 'Preenchendo' : 'Editor de Acionamento'}
             </p>
             <p className="text-sm font-semibold truncate">
-              {pdfName || (editando ? 'Novo Acionamento' : 'Nenhum PDF importado')}
+              {editando ? (pdfName || 'Acionamento') : 'Acionamento'}
             </p>
           </div>
 
@@ -351,95 +143,46 @@ export default function Acionamento() {
                 <CheckCircle size={13} /> Salvo
               </span>
             )}
-
             <button onClick={toggle} className="lg:hidden p-1.5 rounded-xl"
               style={{ background: 'rgba(255,255,255,0.12)' }}>
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-
-            {(pdfBytes || editando) && (
-              <button onClick={() => salvar(pdfName, data)}
+            {editando && (
+              <button
+                onClick={() => salvar(pdfName, data)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
-                style={{ background: 'rgba(255,255,255,0.12)' }}>
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+              >
                 <Save size={14} /> Salvar
-              </button>
-            )}
-            {pdfBytes && (
-              <button onClick={handleExport} disabled={exporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold disabled:opacity-60"
-                style={{ background: 'rgba(255,255,255,0.18)' }}>
-                {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-                Exportar
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 lg:px-8 pt-5 pb-10 w-full flex-1">
+      <div className="max-w-2xl mx-auto px-4 lg:px-8 pt-5 pb-10 w-full flex-1">
 
-        {/* ── Sem PDF: área de importação ── */}
-        {!pdfBytes && !editando && (
-          <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
-            <div className="space-y-3 mt-8 lg:mt-2">
-              <div
-                onDrop={onDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => pdfInputRef.current?.click()}
-                className="border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-4 py-14 lg:py-20 cursor-pointer transition hover:border-pink-400"
-                style={{ borderColor: '#E2C0CC' }}
-              >
-                {loadingPdf ? (
-                  <Loader2 size={36} className="animate-spin" style={{ color: '#C0014A' }} />
-                ) : (
-                  <>
-                    <div className="rounded-2xl p-5" style={{ background: '#FFF0F4' }}>
-                      <Upload size={36} style={{ color: '#C0014A' }} />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-black text-lg text-slate-700 dark:text-slate-200">
-                        Importar PDF do formulário
-                      </p>
-                      <p className="text-sm text-slate-400 mt-1">
-                        Clique ou arraste o PDF recebido no grupo
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+        {/* ── Lista de acionamentos ── */}
+        {!editando && (
+          <div className="space-y-4 mt-4">
+            <button
+              onClick={novoAcionamento}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold shadow-lg transition-all active:scale-95 hover:brightness-110"
+              style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.25)' }}
+            >
+              <Plus size={18} /> Novo Acionamento
+            </button>
 
-              <div className="flex items-center gap-3 px-1">
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-                <span className="text-xs font-medium text-slate-400">ou</span>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-              </div>
-
-              <button
-                onClick={iniciarSemPdf}
-                className="w-full py-3.5 rounded-2xl text-sm font-bold border-2 transition hover:opacity-80"
-                style={{ borderColor: '#C0014A', color: '#C0014A' }}
-              >
-                Continuar sem PDF
-              </button>
-            </div>
-
-            {/* Lista de registros salvos */}
             {savedList.length > 0 && (
               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-700">
+                <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-700">
                   <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Rascunhos salvos
+                    Acionamentos salvos
                   </p>
-                  <button
-                    onClick={() => setShowSavedList(v => !v)}
-                    className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
-                  >
-                    {showSavedList ? 'Ocultar' : 'Ver todos'}
-                  </button>
                 </div>
                 <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {(showSavedList ? savedList : savedList.slice(0, 3)).map(({ name, savedAt }) => (
-                    <div key={name} className="flex items-center justify-between px-5 py-3 gap-3">
+                  {savedList.map(({ name, savedAt }) => (
+                    <div key={name} className="flex items-center justify-between px-5 py-3.5 gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{name}</p>
                         {savedAt && (
@@ -455,19 +198,12 @@ export default function Acionamento() {
                             if (!record) return
                             setData(record.data)
                             setPdfName(record.name)
-                            if (record.pdfBytes.byteLength > 0) {
-                              setPdfBytes(new Uint8Array(record.pdfBytes))
-                              await renderPages(new Uint8Array(record.pdfBytes).buffer)
-                            } else {
-                              setPdfBytes(null)
-                              setPdfPages([])
-                              setEditando(true)
-                            }
+                            setEditando(true)
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition"
                           style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)' }}
                         >
-                          <FileDown size={12} /> Abrir
+                          Abrir
                         </button>
                         <button
                           onClick={async () => {
@@ -484,166 +220,123 @@ export default function Acionamento() {
                 </div>
               </div>
             )}
+
+            {savedList.length === 0 && (
+              <div className="text-center py-16 text-slate-400">
+                <p className="text-sm font-medium">Nenhum acionamento salvo ainda.</p>
+                <p className="text-xs mt-1">Use o botão acima ou acesse pelo formulário.</p>
+              </div>
+            )}
           </div>
         )}
-        <input ref={pdfInputRef} type="file" accept="application/pdf" className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfImport(f) }} />
 
-        {/* ── Com PDF ou em edição: layout ── */}
-        {(pdfBytes || editando) && (
-          <div className="flex flex-col lg:flex-row gap-5 mt-2">
+        {/* ── Formulário de acionamento ── */}
+        {editando && (
+          <div className="space-y-4 mt-4">
 
-            {/* Coluna esquerda: visualizador PDF (só quando há PDF) */}
-            {pdfBytes && <div className="flex-1 min-w-0">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-
-                {/* toolbar do visualizador */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-700">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                    Visualização — {pdfPages.length} {pdfPages.length === 1 ? 'página' : 'páginas'}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
-                      className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-800 transition">
-                      <ZoomOut size={14} />
-                    </button>
-                    <span className="text-xs font-bold text-slate-500 w-10 text-center">
-                      {Math.round(zoom * 100)}%
-                    </span>
-                    <button onClick={() => setZoom(z => Math.min(2.5, z + 0.25))}
-                      className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-800 transition">
-                      <ZoomIn size={14} />
-                    </button>
-                    <button onClick={() => { setPdfBytes(null); setPdfPages([]); setPdfName(''); setEditando(false) }}
-                      className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-400 hover:text-red-600 transition ml-1">
-                      <X size={14} />
-                    </button>
-                  </div>
+            {/* Card: Identificação */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
+                <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
+                <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                  Identificação
+                </h2>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Responsável EQTL Acionamento</Label>
+                  <Input value={data.responsavelEqtl} onChange={(v) => set({ responsavelEqtl: v })}
+                    placeholder="Nome do responsável" />
                 </div>
-
-                {/* páginas */}
-                <div className="overflow-auto max-h-[75vh] bg-slate-200 dark:bg-slate-900 p-4 space-y-4">
-                  {loadingPdf && (
-                    <div className="flex items-center justify-center py-20">
-                      <Loader2 size={28} className="animate-spin" style={{ color: '#C0014A' }} />
-                    </div>
-                  )}
-                  {pdfPages.map((src, i) => (
-                    <img key={i} src={src} alt={`Página ${i + 1}`}
-                      className="mx-auto shadow-xl rounded-lg block"
-                      style={{ width: `${zoom * 100}%`, maxWidth: '100%' }} />
-                  ))}
+                <div className="flex flex-col gap-1.5">
+                  <Label>Via</Label>
+                  <Input value={data.via} onChange={(v) => set({ via: v })}
+                    placeholder="Ex: Telefone, Rádio..." />
                 </div>
               </div>
-            </div>}
-
-            {/* Coluna direita: formulário de acionamento */}
-            <div className={`flex-shrink-0 space-y-4 ${pdfBytes ? 'w-full lg:w-96 xl:w-[420px]' : 'w-full max-w-lg mx-auto'}`}>
-
-              {/* Card: Identificação */}
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
-                  <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
-                  <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                    Identificação
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Responsável EQTL Acionamento</Label>
-                    <Input value={data.responsavelEqtl} onChange={(v) => set({ responsavelEqtl: v })}
-                      placeholder="Nome do responsável" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Via</Label>
-                    <Input value={data.via} onChange={(v) => set({ via: v })}
-                      placeholder="Ex: Telefone, Rádio..." />
-                  </div>
-                </div>
-              </div>
-
-              {/* Card: Horários */}
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
-                  <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
-                  <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                    Horários
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Acionamento</Label>
-                    <Input value={data.dataHoraAcionamento} onChange={(v) => set({ dataHoraAcionamento: v })}
-                      type="datetime-local" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Chegada na Base</Label>
-                    <Input value={data.dataHoraChegadaBase} onChange={(v) => set({ dataHoraChegadaBase: v })}
-                      type="datetime-local" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Card: Quebra de Programação */}
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
-                  <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
-                  <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                    Quebra de Programação
-                  </h2>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Houve quebra de programação?</Label>
-                    <div className="flex gap-2">
-                      {(['sim', 'nao'] as const).map((op) => (
-                        <button key={op} type="button"
-                          onClick={() => set({ quebraProgramacao: op })}
-                          className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
-                          style={data.quebraProgramacao === op ? {
-                            background: op === 'sim' ? '#FFF0F4' : '#F0FFF4',
-                            borderColor: op === 'sim' ? '#C0014A' : '#059669',
-                            color: op === 'sim' ? '#C0014A' : '#059669',
-                          } : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}>
-                          {op === 'sim' ? 'Sim' : 'Não'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {data.quebraProgramacao === 'sim' && (
-                    <div className="flex flex-col gap-1.5">
-                      <Label>PEP</Label>
-                      <Input value={data.pep} onChange={(v) => set({ pep: v })}
-                        placeholder="Número do PEP" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Card: Foto */}
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
-                <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
-                  <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
-                  <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                    Foto do Acionamento
-                  </h2>
-                </div>
-                <PhotoCapture
-                  label="Foto do Acionamento"
-                  value={data.fotoAcionamento}
-                  onChange={(v) => set({ fotoAcionamento: v })}
-                  incidente={incFromPdfName(pdfName)}
-                />
-              </div>
-
-              {/* Botão exportar */}
-              <button onClick={handleExport} disabled={exporting}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold shadow-lg transition-all active:scale-95 disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.3)' }}>
-                {exporting ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
-                Gerar PDF com Acionamento
-              </button>
             </div>
+
+            {/* Card: Horários */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
+                <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
+                <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                  Horários
+                </h2>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Acionamento</Label>
+                  <Input value={data.dataHoraAcionamento} onChange={(v) => set({ dataHoraAcionamento: v })}
+                    type="datetime-local" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Chegada na Base</Label>
+                  <Input value={data.dataHoraChegadaBase} onChange={(v) => set({ dataHoraChegadaBase: v })}
+                    type="datetime-local" />
+                </div>
+              </div>
+            </div>
+
+            {/* Card: Quebra de Programação */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
+                <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
+                <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                  Quebra de Programação
+                </h2>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Houve quebra de programação?</Label>
+                  <div className="flex gap-2">
+                    {(['sim', 'nao'] as const).map((op) => (
+                      <button key={op} type="button"
+                        onClick={() => set({ quebraProgramacao: op })}
+                        className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
+                        style={data.quebraProgramacao === op ? {
+                          background: op === 'sim' ? '#FFF0F4' : '#F0FFF4',
+                          borderColor: op === 'sim' ? '#C0014A' : '#059669',
+                          color: op === 'sim' ? '#C0014A' : '#059669',
+                        } : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}>
+                        {op === 'sim' ? 'Sim' : 'Não'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {data.quebraProgramacao === 'sim' && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label>PEP</Label>
+                    <Input value={data.pep} onChange={(v) => set({ pep: v })}
+                      placeholder="Número do PEP" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Card: Foto */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-slate-700">
+                <div className="w-1 h-5 rounded-full" style={{ background: '#C0014A' }} />
+                <h2 className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                  Foto do Acionamento
+                </h2>
+              </div>
+              <PhotoCapture
+                label="Foto do Acionamento"
+                value={data.fotoAcionamento}
+                onChange={(v) => set({ fotoAcionamento: v })}
+                incidente={incFromName(pdfName)}
+              />
+            </div>
+
+            <button
+              onClick={() => salvar(pdfName, data)}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold shadow-lg transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.3)' }}
+            >
+              <Save size={18} /> Salvar Acionamento
+            </button>
           </div>
         )}
       </div>
