@@ -3,8 +3,8 @@ import type { FormularioEME, EvidenciaItem } from '../../types/eme'
 import SectionCard from '../ui/SectionCard'
 import PhotoCapture from '../ui/PhotoCapture'
 
-/** Gera um par INSTALADO / RETIRADO para cada item base. */
-const par = (base: string) => [`${base} INSTALADO`, `${base} RETIRADO`]
+/** Gera "INSTALAR - X" e "RETIRAR - X" para cada item base. */
+const par = (base: string) => [`INSTALAR - ${base}`, `RETIRAR - ${base}`]
 
 const _estruturas = [
   ...['U','D','N','B','T'].flatMap(l => [1,2,3,4].map(n => `ESTRUTURA - ${l}${n}`)),
@@ -17,17 +17,22 @@ const _cabos = ['1#35MM','2#35MM','3#35MM','4#35MM','70MM','4AWG','1/0','4/0'].m
 const SUGESTOES_FOTO: string[] = [
   'POSTE QUEBRADO',
   'POSTE DANIFICADO',
-  'POSTE INSTALADO',
+  'INSTALAR 300/9', 'INSTALAR 300/10', 'INSTALAR 300/11', 'INSTALAR 300/12',
+  'INSTALAR 600/11', 'INSTALAR 600/12',
+  'INSTALAR 1000/11', 'INSTALAR 1000/12',
+  'INSTALAR - POSTE DE FIBRA 300/9', 'INSTALAR - POSTE DE FIBRA 300/10',
+  'INSTALAR - POSTE DE FIBRA 300/11', 'INSTALAR - POSTE DE FIBRA 300/12',
+  'INSTALAR - ATERRAMENTO',
   'ESTAI DE SUBSOLO',
   'ESTAI ÂNCORA',
-  'COMPONENTE INSTALADO', 'COMPONENTE RETIRADO',
+  ...par('COMPONENTE'),
   'CHAVE FUSIVEL',
-  'TRAF MONOFÁSICO INSTALADO', 'TRAF MONOFÁSICO RETIRADO',
-  'TRAF BIFÁSICO INSTALADO', 'TRAF BIFÁSICO RETIRADO',
-  'TRAF TRIFÁSICO INSTALADO', 'TRAF TRIFÁSICO RETIRADO',
-  'CHAVE FACA INSTALADA', 'CHAVE FACA RETIRADA',
-  'BASTÕES INSTALADOS', 'BASTÕES RETIRADOS',
-  'PLACA DO TRAF INSTALADO', 'PLACA DO TRAF RETIRADO',
+  ...par('TRAF MONOFÁSICO'),
+  ...par('TRAF BIFÁSICO'),
+  ...par('TRAF TRIFÁSICO'),
+  ...par('CHAVE FACA'),
+  ...par('BASTÕES'),
+  ...par('PLACA DO TRAF'),
   ..._cabos.flatMap(par),
   ..._estruturas.flatMap(par),
 ]
