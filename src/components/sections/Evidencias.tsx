@@ -3,25 +3,24 @@ import type { FormularioEME, EvidenciaItem } from '../../types/eme'
 import SectionCard from '../ui/SectionCard'
 import PhotoCapture from '../ui/PhotoCapture'
 
-const SUGESTOES_FOTO = [
+/** Gera um par INSTALADO / RETIRADO para cada item base. */
+const par = (base: string) => [`${base} INSTALADO`, `${base} RETIRADO`]
+
+const _estruturas = [
+  ...['U','D','N','B','T'].flatMap(l => [1,2,3,4].map(n => `ESTRUTURA - ${l}${n}`)),
+  ...['S1A','S2A','S3A','S4A','S5A','S1D','S2D','S3D','S4D','S5D',
+      'S1E','S2E','S3E','S4E','S5E','S1I','S3I','S4I','S4I°'].map(c => `ESTRUTURA - ${c}`),
+]
+
+const _cabos = ['1#35MM','2#35MM','3#35MM','4#35MM','70MM','4AWG','1/0','4/0'].map(c => `CABO ${c}`)
+
+const SUGESTOES_FOTO: string[] = [
   'POSTE QUEBRADO',
   'POSTE DANIFICADO',
   'POSTE INSTALADO',
-  'ESTRUTURA - U1', 'ESTRUTURA - U2', 'ESTRUTURA - U3', 'ESTRUTURA - U4',
-  'ESTRUTURA - D1', 'ESTRUTURA - D2', 'ESTRUTURA - D3', 'ESTRUTURA - D4',
-  'ESTRUTURA - N1', 'ESTRUTURA - N2', 'ESTRUTURA - N3', 'ESTRUTURA - N4',
-  'ESTRUTURA - B1', 'ESTRUTURA - B2', 'ESTRUTURA - B3', 'ESTRUTURA - B4',
-  'ESTRUTURA - T1', 'ESTRUTURA - T2', 'ESTRUTURA - T3', 'ESTRUTURA - T4',
-  'ESTRUTURA - S1A', 'ESTRUTURA - S2A', 'ESTRUTURA - S3A', 'ESTRUTURA - S4A', 'ESTRUTURA - S5A',
-  'ESTRUTURA - S1D', 'ESTRUTURA - S2D', 'ESTRUTURA - S3D', 'ESTRUTURA - S4D', 'ESTRUTURA - S5D',
-  'ESTRUTURA - S1E', 'ESTRUTURA - S2E', 'ESTRUTURA - S3E', 'ESTRUTURA - S4E', 'ESTRUTURA - S5E',
-  'ESTRUTURA - S1I', 'ESTRUTURA - S3I', 'ESTRUTURA - S4I', 'ESTRUTURA - S4I°',
   'ESTAI DE SUBSOLO',
   'ESTAI ÂNCORA',
-  'CABO 1#35MM', 'CABO 2#35MM', 'CABO 3#35MM', 'CABO 4#35MM',
-  'CABO 70MM',
-  'CABO 4AWG',
-  'CABO 1/0', 'CABO 4/0',
+  'COMPONENTE INSTALADO', 'COMPONENTE RETIRADO',
   'CHAVE FUSIVEL',
   'TRAF MONOFÁSICO INSTALADO', 'TRAF MONOFÁSICO RETIRADO',
   'TRAF BIFÁSICO INSTALADO', 'TRAF BIFÁSICO RETIRADO',
@@ -29,6 +28,8 @@ const SUGESTOES_FOTO = [
   'CHAVE FACA INSTALADA', 'CHAVE FACA RETIRADA',
   'BASTÕES INSTALADOS', 'BASTÕES RETIRADOS',
   'PLACA DO TRAF INSTALADO', 'PLACA DO TRAF RETIRADO',
+  ..._cabos.flatMap(par),
+  ..._estruturas.flatMap(par),
 ]
 
 interface Props {
