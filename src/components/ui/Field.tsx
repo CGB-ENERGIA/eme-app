@@ -62,7 +62,9 @@ export default function Field(props: Props) {
         <textarea
           className={`${inputClass} resize-none ${forceUpper ? 'uppercase' : ''}`}
           rows={rows ?? 3}
-          autoCapitalize={forceUpper ? 'characters' : undefined}
+          autoCapitalize={forceUpper ? 'characters' : 'sentences'}
+          autoCorrect={forceUpper ? 'off' : 'on'}
+          spellCheck={!forceUpper}
           onChange={handleChange}
           {...textareaRest}
         />
@@ -89,7 +91,9 @@ export default function Field(props: Props) {
       <input
         type={inputType}
         className={`${inputClass} ${forceUpper ? 'uppercase' : ''}`}
-        autoCapitalize={forceUpper ? 'characters' : undefined}
+        autoCapitalize={forceUpper ? 'characters' : 'sentences'}
+        autoCorrect={forceUpper ? 'off' : 'on'}
+        spellCheck={!forceUpper}
         onChange={handleChange}
         {...inputRest}
       />

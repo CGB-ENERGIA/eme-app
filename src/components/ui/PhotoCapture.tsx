@@ -102,6 +102,9 @@ export default function PhotoCapture({ label, onLabelChange, value, onChange, in
               onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').toUpperCase())
             }
             placeholder="DESCREVA A FOTO"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
             className="text-xs font-semibold uppercase tracking-wide bg-transparent border-b pb-0.5 focus:outline-none flex-1 min-w-0 placeholder:font-normal"
             style={{
               color: hasError ? '#ef4444' : '#64748b',
