@@ -6,10 +6,14 @@ import PhotoCapture from '../ui/PhotoCapture'
 /** Gera "INSTALAR - X" e "RETIRAR - X" para cada item base. */
 const par = (base: string) => [`INSTALAR - ${base}`, `RETIRAR - ${base}`]
 
+const _udnbt = ['U','D','N','B','T'].flatMap(l => [1,2,3,4,'1TR','3TR','4TR','3F','4F'].map(n => `${l}${n}`))
+const _serieS = ['S1A','S2A','S3A','S4A','S5A','S1D','S2D','S3D','S4D','S5D',
+    'S1E','S2E','S3E','S4E','S5E','S1I','S3I','S4I','S4I°']
+
 const _estruturas = [
-  ...['U','D','N','B','T'].flatMap(l => [1,2,3,4,'1TR','3F','4F'].map(n => `ESTRUTURA - ${l}${n}`)),
-  ...['S1A','S2A','S3A','S4A','S5A','S1D','S2D','S3D','S4D','S5D',
-      'S1E','S2E','S3E','S4E','S5E','S1I','S3I','S4I','S4I°'].map(c => `ESTRUTURA - ${c}`),
+  ..._udnbt.map(v => `ESTRUTURA - ${v}`),
+  ..._serieS.map(c => `ESTRUTURA - ${c}`),
+  ..._udnbt.flatMap(a => _serieS.map(b => `ESTRUTURA - ${a}/${b}`)),
 ]
 
 const _cabos = ['1#35MM','2#35MM','3#35MM','4#35MM','70MM','4AWG','1/0','4/0'].map(c => `CABO ${c}`)
