@@ -542,8 +542,8 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
     y = sectionTitle(doc, 'Evidências', y)
 
     for (const [idx, ev] of form.evidencias.entries()) {
-      if (!ev.descricao && !ev.foto1 && !ev.foto2) continue
-      const evH = 8 + (ev.descricao ? 10 : 0) + (ev.foto1 || ev.foto2 ? fotoH + 14 : 0)
+      if (!ev.descricao && !ev.descricao2 && !ev.foto1 && !ev.foto2) continue
+      const evH = 8 + (ev.foto1 || ev.foto2 ? fotoH + 14 : 0)
       checkPage(evH + 8)
 
       // Card da evidência
@@ -560,23 +560,14 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
       doc.setFontSize(7.5)
       doc.setTextColor(...CGB.dark)
       doc.text(`EVIDÊNCIA ${idx + 1}`, MX + 7, y + 5.5)
-      let iy = y + 10
-
-      if (ev.descricao) {
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(8.5)
-        doc.setTextColor(...CGB.ink)
-        const dl = doc.splitTextToSize(ev.descricao, COL - 12)
-        doc.text(dl, MX + 7, iy)
-        iy += dl.length * 5 + 2
-      }
+      const iy = y + 10
 
       const evFotoW = (COL - 16) / 2
       const evFotoH = evFotoW * 0.72
 
       const evFotos = [
-        { src: ev.foto1, lbl: 'Foto do Defeito' },
-        { src: ev.foto2, lbl: 'Foto da Correção' },
+        { src: ev.foto1, lbl: ev.descricao || 'FOTO 1' },
+        { src: ev.foto2, lbl: ev.descricao2 || 'FOTO 2' },
       ].filter((f): f is { src: string; lbl: string } => !!f.src)
 
       for (const [fi, { src, lbl }] of evFotos.entries()) {

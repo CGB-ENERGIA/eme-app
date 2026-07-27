@@ -138,6 +138,7 @@ function sanitizeEvidencias(value: unknown): EvidenciaItem[] {
     const source = isRecordObject(item) ? item : {}
     return {
       descricao: typeof source.descricao === 'string' ? source.descricao : '',
+      descricao2: typeof source.descricao2 === 'string' ? source.descricao2 : '',
       foto1: typeof source.foto1 === 'string' ? source.foto1 : null,
       foto2: typeof source.foto2 === 'string' ? source.foto2 : null,
     }

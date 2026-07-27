@@ -1,5 +1,6 @@
 export interface EvidenciaItem {
-  descricao: string
+  descricao: string   // rótulo da foto1 (editável pelo usuário)
+  descricao2: string  // rótulo da foto2 (editável pelo usuário)
   foto1: string | null  // base64
   foto2: string | null  // base64
 }
@@ -75,7 +76,7 @@ export const criarFormularioVazio = (): FormularioEME => ({
   duracaoIntervalo: '',
   horaEnergizacao: '',
   observacao: '',
-  evidencias: Array.from({ length: 3 }, () => ({ descricao: '', foto1: null, foto2: null })),
+  evidencias: Array.from({ length: 3 }, () => ({ descricao: '', descricao2: '', foto1: null, foto2: null })),
   fotoAcionamento: null,
   fotoSaidaBase: null,
   fotoChegadaServico: null,

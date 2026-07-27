@@ -5,6 +5,7 @@ import { processGalleryPhoto, getBestCoordinates, isCameraSupported, type PhotoC
 
 interface Props {
   label: string
+  onLabelChange?: (label: string) => void
   value: string | null
   onChange: (base64: string | null) => void
   incidente?: string
@@ -15,7 +16,7 @@ interface Props {
   hint?: string
 }
 
-export default function PhotoCapture({ label, value, onChange, incidente, equipe, small, required, showError, hint }: Props) {
+export default function PhotoCapture({ label, onLabelChange, value, onChange, incidente, equipe, small, required, showError, hint }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
@@ -93,11 +94,27 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
       />
 
       <div className="flex items-start justify-between gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide leading-snug break-words flex-1 min-w-0"
-          style={{ color: hasError ? '#ef4444' : '#64748b' }}>
-          {label}
-          {required && <span className="text-red-500">*</span>}
-        </span>
+        {onLabelChange ? (
+          <input
+            type="text"
+            value={label}
+            onChange={(e) =>
+              onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').toUpperCase())
+            }
+            placeholder="DESCREVA A FOTO"
+            className="text-xs font-semibold uppercase tracking-wide bg-transparent border-b pb-0.5 focus:outline-none flex-1 min-w-0 placeholder:font-normal"
+            style={{
+              color: hasError ? '#ef4444' : '#64748b',
+              borderColor: label ? '#e2e8f0' : '#f0c0cc',
+            }}
+          />
+        ) : (
+          <span className="text-xs font-medium uppercase tracking-wide leading-snug break-words flex-1 min-w-0"
+            style={{ color: hasError ? '#ef4444' : '#64748b' }}>
+            {label}
+            {required && <span className="text-red-500">*</span>}
+          </span>
+        )}
         {hint && (
           <span className="text-xs font-medium px-2 py-0.5 rounded-full"
             style={{ background: '#FFF0F4', color: '#9B003C' }}>

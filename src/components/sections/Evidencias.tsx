@@ -43,7 +43,8 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <PhotoCapture
-              label="Foto do Defeito"
+              label={ev.descricao}
+              onLabelChange={(v) => atualizar(idx, { descricao: v })}
               value={ev.foto1}
               onChange={(v) => atualizar(idx, { foto1: v })}
               incidente={form.incidente}
@@ -51,7 +52,8 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
               small
             />
             <PhotoCapture
-              label="Foto da Correção"
+              label={ev.descricao2}
+              onLabelChange={(v) => atualizar(idx, { descricao2: v })}
               value={ev.foto2}
               onChange={(v) => atualizar(idx, { foto2: v })}
               incidente={form.incidente}

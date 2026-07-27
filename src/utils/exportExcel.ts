@@ -171,8 +171,8 @@ export async function exportarExcel(form: FormularioEME): Promise<void> {
     { label: 'Saída da equipe da base', src: form.fotoSaidaBase },
     { label: 'Chegada da equipe no local de serviço', src: form.fotoChegadaServico },
     ...form.evidencias.flatMap((ev, i) => [
-      { label: `Evidência ${i + 1} — Antes${ev.descricao ? ` (${ev.descricao})` : ''}`, src: ev.foto1 },
-      { label: `Evidência ${i + 1} — Depois${ev.descricao ? ` (${ev.descricao})` : ''}`, src: ev.foto2 },
+      { label: ev.descricao || `Evidência ${i + 1} — Foto 1`, src: ev.foto1 },
+      { label: ev.descricao2 || `Evidência ${i + 1} — Foto 2`, src: ev.foto2 },
     ]),
     { label: 'Chegada da equipe na base pós atendimento', src: form.fotoChegadaBasePosAtendimento },
   ]
