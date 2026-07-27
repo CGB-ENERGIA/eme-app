@@ -22,6 +22,10 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
   const [processing, setProcessing] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
 
+  // Ref para sempre chamar a versão mais recente do onChange (evita stale closure no handlePaste)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
   const openCamera = () => {
     geoPrefetch.current = getBestCoordinates()
     if (isCameraSupported()) {
@@ -38,9 +42,9 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
       const result = fromCamera
         ? await captureViaNativeInput(file, geoPrefetch.current ?? undefined, { incidente, equipe })
         : await processGalleryPhoto(file)
-      onChange(result)
+      onChangeRef.current(result)
     } catch {
-      onChange(null)
+      onChangeRef.current(null)
     } finally {
       geoPrefetch.current = null
       setProcessing(false)
@@ -57,7 +61,7 @@ export default function PhotoCapture({ label, value, onChange, incidente, equipe
     const file = imageItem.getAsFile()
     if (!file) return
     await handleFile(file, false)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps — handleFile usa onChangeRef.current (sempre atualizado)
 
   const colarDoClipboard = async () => {
     try {
