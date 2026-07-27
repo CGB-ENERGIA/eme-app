@@ -65,6 +65,7 @@ export default function Acionamento() {
   const [saveState, setSaveState]   = useState<'idle' | 'saving' | 'saved'>('idle')
   const [savedList, setSavedList]   = useState<{ name: string; savedAt: string }[]>([])
   const [showSavedList, setShowSavedList] = useState(false)
+  const [editando, setEditando]           = useState(false)
 
   const pdfInputRef = useRef<HTMLInputElement>(null)
 
@@ -74,6 +75,18 @@ export default function Acionamento() {
   }, [])
 
   useEffect(() => { recarregarLista() }, [recarregarLista])
+
+  const iniciarSemPdf = useCallback(async () => {
+    const now = new Date()
+    const d   = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')
+    const h   = `${String(now.getHours()).padStart(2, '0')}h${String(now.getMinutes()).padStart(2, '0')}`
+    const nome = `ACIONAMENTO_${d}_${h}`
+    setData(emptyAcionamento)
+    setPdfName(nome)
+    setEditando(true)
+    await salvarAcionamento({ name: nome, data: emptyAcionamento, pdfBytes: new Uint8Array(), savedAt: now.toISOString() })
+    await recarregarLista()
+  }, [recarregarLista])
 
   const salvar = useCallback(async (name: string, d: AcionamentoData, bytes?: Uint8Array) => {
     setSaveState('saving')
@@ -298,7 +311,7 @@ export default function Acionamento() {
               Editor de Acionamento
             </p>
             <p className="text-sm font-semibold truncate">
-              {pdfName || 'Nenhum PDF importado'}
+              {pdfName || (editando ? 'Novo Acionamento' : 'Nenhum PDF importado')}
             </p>
           </div>
 
@@ -315,20 +328,20 @@ export default function Acionamento() {
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
 
+            {(pdfBytes || editando) && (
+              <button onClick={() => salvar(pdfName, data)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
+                style={{ background: 'rgba(255,255,255,0.12)' }}>
+                <Save size={14} /> Salvar
+              </button>
+            )}
             {pdfBytes && (
-              <>
-                <button onClick={() => salvar(pdfName, data)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
-                  style={{ background: 'rgba(255,255,255,0.12)' }}>
-                  <Save size={14} /> Salvar
-                </button>
-                <button onClick={handleExport} disabled={exporting}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold disabled:opacity-60"
-                  style={{ background: 'rgba(255,255,255,0.18)' }}>
-                  {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
-                  Exportar
-                </button>
-              </>
+              <button onClick={handleExport} disabled={exporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold disabled:opacity-60"
+                style={{ background: 'rgba(255,255,255,0.18)' }}>
+                {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+                Exportar
+              </button>
             )}
           </div>
         </div>
@@ -337,32 +350,48 @@ export default function Acionamento() {
       <div className="max-w-5xl lg:max-w-7xl mx-auto px-4 lg:px-8 pt-5 pb-10 w-full flex-1">
 
         {/* ── Sem PDF: área de importação ── */}
-        {!pdfBytes && (
+        {!pdfBytes && !editando && (
           <div className="space-y-5 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
-            <div
-              onDrop={onDrop}
-              onDragOver={(e) => e.preventDefault()}
-              onClick={() => pdfInputRef.current?.click()}
-              className="mt-8 lg:mt-2 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-4 py-16 lg:py-24 cursor-pointer transition hover:border-pink-400"
-              style={{ borderColor: '#E2C0CC' }}
-            >
-              {loadingPdf ? (
-                <Loader2 size={36} className="animate-spin" style={{ color: '#C0014A' }} />
-              ) : (
-                <>
-                  <div className="rounded-2xl p-5" style={{ background: '#FFF0F4' }}>
-                    <Upload size={36} style={{ color: '#C0014A' }} />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-black text-lg text-slate-700 dark:text-slate-200">
-                      Importar PDF do formulário
-                    </p>
-                    <p className="text-sm text-slate-400 mt-1">
-                      Clique ou arraste o PDF recebido no grupo
-                    </p>
-                  </div>
-                </>
-              )}
+            <div className="space-y-3 mt-8 lg:mt-2">
+              <div
+                onDrop={onDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={() => pdfInputRef.current?.click()}
+                className="border-2 border-dashed rounded-3xl flex flex-col items-center justify-center gap-4 py-14 lg:py-20 cursor-pointer transition hover:border-pink-400"
+                style={{ borderColor: '#E2C0CC' }}
+              >
+                {loadingPdf ? (
+                  <Loader2 size={36} className="animate-spin" style={{ color: '#C0014A' }} />
+                ) : (
+                  <>
+                    <div className="rounded-2xl p-5" style={{ background: '#FFF0F4' }}>
+                      <Upload size={36} style={{ color: '#C0014A' }} />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-black text-lg text-slate-700 dark:text-slate-200">
+                        Importar PDF do formulário
+                      </p>
+                      <p className="text-sm text-slate-400 mt-1">
+                        Clique ou arraste o PDF recebido no grupo
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 px-1">
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                <span className="text-xs font-medium text-slate-400">ou</span>
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+              </div>
+
+              <button
+                onClick={iniciarSemPdf}
+                className="w-full py-3.5 rounded-2xl text-sm font-bold border-2 transition hover:opacity-80"
+                style={{ borderColor: '#C0014A', color: '#C0014A' }}
+              >
+                Continuar sem PDF
+              </button>
             </div>
 
             {/* Lista de registros salvos */}
@@ -397,8 +426,14 @@ export default function Acionamento() {
                             if (!record) return
                             setData(record.data)
                             setPdfName(record.name)
-                            setPdfBytes(new Uint8Array(record.pdfBytes))
-                            await renderPages(new Uint8Array(record.pdfBytes).buffer)
+                            if (record.pdfBytes.byteLength > 0) {
+                              setPdfBytes(new Uint8Array(record.pdfBytes))
+                              await renderPages(new Uint8Array(record.pdfBytes).buffer)
+                            } else {
+                              setPdfBytes(null)
+                              setPdfPages([])
+                              setEditando(true)
+                            }
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition"
                           style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)' }}
@@ -425,12 +460,12 @@ export default function Acionamento() {
         <input ref={pdfInputRef} type="file" accept="application/pdf" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfImport(f) }} />
 
-        {/* ── Com PDF: layout duas colunas ── */}
-        {pdfBytes && (
+        {/* ── Com PDF ou em edição: layout ── */}
+        {(pdfBytes || editando) && (
           <div className="flex flex-col lg:flex-row gap-5 mt-2">
 
-            {/* Coluna esquerda: visualizador PDF */}
-            <div className="flex-1 min-w-0">
+            {/* Coluna esquerda: visualizador PDF (só quando há PDF) */}
+            {pdfBytes && <div className="flex-1 min-w-0">
               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
 
                 {/* toolbar do visualizador */}
@@ -450,7 +485,7 @@ export default function Acionamento() {
                       className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-slate-800 transition">
                       <ZoomIn size={14} />
                     </button>
-                    <button onClick={() => { setPdfBytes(null); setPdfPages([]); setPdfName('') }}
+                    <button onClick={() => { setPdfBytes(null); setPdfPages([]); setPdfName(''); setEditando(false) }}
                       className="p-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-400 hover:text-red-600 transition ml-1">
                       <X size={14} />
                     </button>
@@ -471,10 +506,10 @@ export default function Acionamento() {
                   ))}
                 </div>
               </div>
-            </div>
+            </div>}
 
             {/* Coluna direita: formulário de acionamento */}
-            <div className="w-full lg:w-96 xl:w-[420px] flex-shrink-0 space-y-4">
+            <div className={`flex-shrink-0 space-y-4 ${pdfBytes ? 'w-full lg:w-96 xl:w-[420px]' : 'w-full max-w-lg mx-auto'}`}>
 
               {/* Card: Identificação */}
               <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 space-y-4 shadow-sm border border-slate-100 dark:border-slate-700">
