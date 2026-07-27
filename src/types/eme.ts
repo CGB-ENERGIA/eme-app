@@ -35,7 +35,6 @@ export interface FormularioEME {
 
   // Fotos do serviço
   fotoAcionamento: string | null
-  fotoChegadaBase: string | null
   fotoSaidaBase: string | null
   fotoChegadaServico: string | null
   fotoEnergizacao: string | null
@@ -78,7 +77,6 @@ export const criarFormularioVazio = (): FormularioEME => ({
   observacao: '',
   evidencias: Array.from({ length: 3 }, () => ({ descricao: '', foto1: null, foto2: null })),
   fotoAcionamento: null,
-  fotoChegadaBase: null,
   fotoSaidaBase: null,
   fotoChegadaServico: null,
   fotoEnergizacao: null,

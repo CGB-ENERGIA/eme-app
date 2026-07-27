@@ -36,7 +36,6 @@ function validarStep(step: number, form: FormularioEME): string[] {
     if (!form.supervisor) erros.push('supervisor')
   }
   if (step === 1) {
-    if (!form.fotoChegadaBase) erros.push('fotoChegadaBase')
     if (!form.fotoSaidaBase) erros.push('fotoSaidaBase')
     if (!form.fotoChegadaServico) erros.push('fotoChegadaServico')
   }

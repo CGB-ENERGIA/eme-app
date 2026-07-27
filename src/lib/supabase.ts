@@ -32,7 +32,6 @@ function toRow(form: FormularioEME): Row {
       foto2: isRemoteUrl(ev.foto2) ? ev.foto2 : null,
     })),
     foto_acionamento: isRemoteUrl(form.fotoAcionamento) ? form.fotoAcionamento : null,
-    foto_chegada_base: isRemoteUrl(form.fotoChegadaBase) ? form.fotoChegadaBase : null,
     foto_saida_base: isRemoteUrl(form.fotoSaidaBase) ? form.fotoSaidaBase : null,
     foto_chegada_servico: isRemoteUrl(form.fotoChegadaServico) ? form.fotoChegadaServico : null,
     foto_energizacao: isRemoteUrl(form.fotoEnergizacao) ? form.fotoEnergizacao : null,
@@ -72,7 +71,6 @@ function fromRow(row: Row): FormularioEME {
     observacao: (row.observacao as string) ?? '',
     evidencias,
     fotoAcionamento: (row.foto_acionamento as string | null) ?? null,
-    fotoChegadaBase: (row.foto_chegada_base as string | null) ?? null,
     fotoSaidaBase: (row.foto_saida_base as string | null) ?? null,
     fotoChegadaServico: (row.foto_chegada_servico as string | null) ?? null,
     fotoEnergizacao: (row.foto_energizacao as string | null) ?? null,
@@ -92,7 +90,7 @@ async function uploadFotosParaR2(form: FormularioEME): Promise<FormularioEME> {
   const fotosSimples: Record<string, string> = {}
 
   const campos = [
-    'fotoAcionamento', 'fotoChegadaBase', 'fotoSaidaBase',
+    'fotoAcionamento', 'fotoSaidaBase',
     'fotoChegadaServico', 'fotoEnergizacao', 'fotoChegadaBasePosAtendimento',
   ] as const
 
@@ -134,7 +132,7 @@ export async function syncFormulario(form: FormularioEME): Promise<FormularioEME
 
   // Se ainda restar base64, o upload falhou — não grava null no banco
   const campos = [
-    'fotoAcionamento', 'fotoChegadaBase', 'fotoSaidaBase',
+    'fotoAcionamento', 'fotoSaidaBase',
     'fotoChegadaServico', 'fotoEnergizacao', 'fotoChegadaBasePosAtendimento',
   ] as const
   for (const campo of campos) {

@@ -168,14 +168,13 @@ export async function exportarExcel(form: FormularioEME): Promise<void> {
   // Section: Fotos do Serviço
   addSection('Fotos do Serviço')
   const fotosServico = [
-    { label: 'Chegada da equipe na base', src: form.fotoChegadaBase },
     { label: 'Saída da equipe da base', src: form.fotoSaidaBase },
     { label: 'Chegada da equipe no local de serviço', src: form.fotoChegadaServico },
-    { label: 'Chegada da equipe na base pós atendimento', src: form.fotoChegadaBasePosAtendimento },
     ...form.evidencias.flatMap((ev, i) => [
       { label: `Evidência ${i + 1} — Antes${ev.descricao ? ` (${ev.descricao})` : ''}`, src: ev.foto1 },
       { label: `Evidência ${i + 1} — Depois${ev.descricao ? ` (${ev.descricao})` : ''}`, src: ev.foto2 },
     ]),
+    { label: 'Chegada da equipe na base pós atendimento', src: form.fotoChegadaBasePosAtendimento },
   ]
   for (const f of fotosServico) {
     if (!f.src) continue

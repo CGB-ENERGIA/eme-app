@@ -70,7 +70,6 @@ function getDB() {
 
 const FOTO_CAMPOS = [
   'fotoAcionamento',
-  'fotoChegadaBase',
   'fotoSaidaBase',
   'fotoChegadaServico',
   'fotoEnergizacao',
