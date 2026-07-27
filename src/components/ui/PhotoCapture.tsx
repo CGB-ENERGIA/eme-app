@@ -6,6 +6,7 @@ import { processGalleryPhoto, getBestCoordinates, isCameraSupported, type PhotoC
 interface Props {
   label: string
   onLabelChange?: (label: string) => void
+  labelSuggestions?: string[]
   value: string | null
   onChange: (base64: string | null) => void
   incidente?: string
@@ -16,12 +17,13 @@ interface Props {
   hint?: string
 }
 
-export default function PhotoCapture({ label, onLabelChange, value, onChange, incidente, equipe, small, required, showError, hint }: Props) {
+export default function PhotoCapture({ label, onLabelChange, labelSuggestions, value, onChange, incidente, equipe, small, required, showError, hint }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const geoPrefetch = useRef<Promise<PhotoCoords | null> | null>(null)
   const [processing, setProcessing] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
+  const [showSugg, setShowSugg] = useState(false)
 
   // Ref para sempre chamar a versão mais recente do onChange (evita stale closure no handlePaste)
   const onChangeRef = useRef(onChange)
@@ -80,7 +82,15 @@ export default function PhotoCapture({ label, onLabelChange, value, onChange, in
     }
   }
 
-  const hasError = showError && required && !value
+  // Foto obrigatória se explicitamente required OU se o rótulo foi preenchido
+  const isRequired = required || (!!onLabelChange && label.trim().length > 0)
+  const hasError = showError && isRequired && !value
+
+  const filteredSugg = labelSuggestions?.length
+    ? label.trim()
+      ? labelSuggestions.filter(s => s.includes(label.trim()))
+      : labelSuggestions
+    : []
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -95,27 +105,50 @@ export default function PhotoCapture({ label, onLabelChange, value, onChange, in
 
       <div className="flex items-start justify-between gap-2">
         {onLabelChange ? (
-          <input
-            type="text"
-            value={label}
-            onChange={(e) =>
-              onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').toUpperCase())
-            }
-            placeholder="DESCREVA A FOTO"
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            className="text-xs font-semibold uppercase tracking-wide bg-transparent border-b pb-0.5 focus:outline-none flex-1 min-w-0 placeholder:font-normal"
-            style={{
-              color: hasError ? '#ef4444' : '#64748b',
-              borderColor: label ? '#e2e8f0' : '#f0c0cc',
-            }}
-          />
+          <div className="relative flex-1 min-w-0">
+            <input
+              type="text"
+              value={label}
+              onChange={(e) =>
+                onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-0-9]/g, '').toUpperCase())
+              }
+              onFocus={() => setShowSugg(true)}
+              onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+              placeholder="DESCREVA A FOTO"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              className="w-full text-xs font-semibold uppercase tracking-wide bg-transparent border-b pb-0.5 focus:outline-none placeholder:font-normal"
+              style={{
+                color: hasError ? '#ef4444' : '#64748b',
+                borderColor: hasError ? '#f87171' : label ? '#e2e8f0' : '#f0c0cc',
+              }}
+            />
+            {showSugg && filteredSugg.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+                {filteredSugg.map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      onLabelChange(s)
+                      setShowSugg(false)
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
+                    style={{ color: '#64748b' }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <span className="text-xs font-medium uppercase tracking-wide leading-snug break-words flex-1 min-w-0"
             style={{ color: hasError ? '#ef4444' : '#64748b' }}>
             {label}
-            {required && <span className="text-red-500">*</span>}
+            {isRequired && <span className="text-red-500">*</span>}
           </span>
         )}
         {hint && (

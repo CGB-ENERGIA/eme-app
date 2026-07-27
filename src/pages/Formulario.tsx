@@ -44,6 +44,10 @@ function validarStep(step: number, form: FormularioEME): string[] {
   }
   if (step === 2) {
     if (!form.fotoEnergizacao) erros.push('fotoEnergizacao')
+    form.evidencias.forEach((ev, i) => {
+      if (ev.descricao.trim() && !ev.foto1) erros.push(`ev${i}f1`)
+      if (ev.descricao2.trim() && !ev.foto2) erros.push(`ev${i}f2`)
+    })
   }
   if (step === 3) {
     if (!form.horaEnergizacao) erros.push('horaEnergizacao')

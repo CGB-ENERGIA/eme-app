@@ -3,6 +3,17 @@ import type { FormularioEME, EvidenciaItem } from '../../types/eme'
 import SectionCard from '../ui/SectionCard'
 import PhotoCapture from '../ui/PhotoCapture'
 
+const SUGESTOES_FOTO = [
+  'POSTE QUEBRADO',
+  'POSTE DANIFICADO',
+  'POSTE INSTALADO',
+  'ESTRUTURA - U1', 'ESTRUTURA - U2', 'ESTRUTURA - U3', 'ESTRUTURA - U4',
+  'ESTRUTURA - D1', 'ESTRUTURA - D2', 'ESTRUTURA - D3', 'ESTRUTURA - D4',
+  'ESTRUTURA - N1', 'ESTRUTURA - N2', 'ESTRUTURA - N3', 'ESTRUTURA - N4',
+  'ESTRUTURA - B1', 'ESTRUTURA - B2', 'ESTRUTURA - B3', 'ESTRUTURA - B4',
+  'ESTRUTURA - T1', 'ESTRUTURA - T2', 'ESTRUTURA - T3', 'ESTRUTURA - T4',
+]
+
 interface Props {
   form: FormularioEME
   onChange: (partial: Partial<FormularioEME>) => void
@@ -45,19 +56,23 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
             <PhotoCapture
               label={ev.descricao}
               onLabelChange={(v) => atualizar(idx, { descricao: v })}
+              labelSuggestions={SUGESTOES_FOTO}
               value={ev.foto1}
               onChange={(v) => atualizar(idx, { foto1: v })}
               incidente={form.incidente}
               equipe={form.equipe}
+              showError={showErrors}
               small
             />
             <PhotoCapture
               label={ev.descricao2}
               onLabelChange={(v) => atualizar(idx, { descricao2: v })}
+              labelSuggestions={SUGESTOES_FOTO}
               value={ev.foto2}
               onChange={(v) => atualizar(idx, { foto2: v })}
               incidente={form.incidente}
               equipe={form.equipe}
+              showError={showErrors}
               small
             />
           </div>
