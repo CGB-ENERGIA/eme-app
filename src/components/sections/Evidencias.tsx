@@ -7,7 +7,7 @@ import PhotoCapture from '../ui/PhotoCapture'
 const par = (base: string) => [`INSTALAR - ${base}`, `RETIRAR - ${base}`]
 
 const _estruturas = [
-  ...['U','D','N','B','T'].flatMap(l => [1,2,3,4].map(n => `ESTRUTURA - ${l}${n}`)),
+  ...['U','D','N','B','T'].flatMap(l => [1,2,3,4,'1TR','3F','4F'].map(n => `ESTRUTURA - ${l}${n}`)),
   ...['S1A','S2A','S3A','S4A','S5A','S1D','S2D','S3D','S4D','S5D',
       'S1E','S2E','S3E','S4E','S5E','S1I','S3I','S4I','S4I°'].map(c => `ESTRUTURA - ${c}`),
 ]
@@ -17,9 +17,9 @@ const _cabos = ['1#35MM','2#35MM','3#35MM','4#35MM','70MM','4AWG','1/0','4/0'].m
 const SUGESTOES_FOTO: string[] = [
   'POSTE QUEBRADO',
   'POSTE DANIFICADO',
-  'INSTALAR 300/9', 'INSTALAR 300/10', 'INSTALAR 300/11', 'INSTALAR 300/12',
-  'INSTALAR 600/11', 'INSTALAR 600/12',
-  'INSTALAR 1000/11', 'INSTALAR 1000/12',
+  'INSTALAR - POSTE 300/9', 'INSTALAR - POSTE 300/10', 'INSTALAR - POSTE 300/11', 'INSTALAR - POSTE 300/12',
+  'INSTALAR - POSTE 600/11', 'INSTALAR - POSTE 600/12',
+  'INSTALAR - POSTE 1000/11', 'INSTALAR - POSTE 1000/12',
   'INSTALAR - POSTE DE FIBRA 300/9', 'INSTALAR - POSTE DE FIBRA 300/10',
   'INSTALAR - POSTE DE FIBRA 300/11', 'INSTALAR - POSTE DE FIBRA 300/12',
   'INSTALAR - ATERRAMENTO',
@@ -32,7 +32,7 @@ const SUGESTOES_FOTO: string[] = [
   ...par('TRAF TRIFÁSICO'),
   ...par('CHAVE FACA'),
   ...par('BASTÕES'),
-  ...par('PLACA DO TRAF'),
+  'PLACA DO TRANSFORMADOR INSTALADO', 'PLACA DO TRANSFORMADOR RETIRADO',
   ..._cabos.flatMap(par),
   ..._estruturas.flatMap(par),
 ]
