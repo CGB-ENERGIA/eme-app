@@ -190,8 +190,8 @@ export default function Lista() {
         <div className="relative w-full lg:flex lg:items-center lg:justify-between lg:gap-12 min-w-0">
           <div className="lg:flex-1 min-w-0">
             <div className="flex items-center justify-between gap-3 mb-1.5">
-              <h1 className="font-black text-2xl sm:text-3xl lg:text-4xl leading-tight tracking-tight" style={{ color: '#f0f0f8' }}>
-                Meus formulários
+              <h1 className="text-light-sweep font-black text-2xl sm:text-3xl lg:text-5xl leading-tight tracking-widest uppercase">
+                Emergencial
               </h1>
               <button
                 type="button"
