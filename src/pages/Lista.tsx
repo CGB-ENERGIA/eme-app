@@ -382,16 +382,28 @@ export default function Lista() {
                 className="flex-1 text-left px-4 pt-4 pb-3.5 transition-colors active:bg-white/5 lg:hover:bg-white/[0.03]"
               >
                 {/* Status badge + chevron */}
-                <div className="flex items-center justify-between mb-3">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={f.status === 'finalizado'
-                      ? { color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }
-                      : { color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
-                  >
-                    {f.status === 'finalizado' ? <CheckCircle size={9} /> : <Clock size={9} />}
-                    {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
-                  </span>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                      style={f.status === 'finalizado'
+                        ? { color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }
+                        : { color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
+                    >
+                      {f.status === 'finalizado' ? <CheckCircle size={9} /> : <Clock size={9} />}
+                      {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
+                    </span>
+                    {f.syncPendente && (
+                      <span
+                        className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                        style={{ color: '#fb923c', background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.25)' }}
+                        title="Alterações neste aparelho ainda não subiram ao banco"
+                      >
+                        <RefreshCw size={9} />
+                        Não sincronizado
+                      </span>
+                    )}
+                  </div>
                   <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-all flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
                 </div>
 

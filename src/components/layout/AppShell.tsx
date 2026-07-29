@@ -1,9 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { FileText, Zap, Sun, Moon, ClipboardList, WifiOff, Wifi, RefreshCw } from 'lucide-react'
+import { FileText, Zap, Sun, Moon, ClipboardList, WifiOff, Wifi, RefreshCw, CloudUpload } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAppRole } from '../../contexts/RoleContext'
 import { EME_SYNC_EVENT, type EmeSyncDetail } from '../../lib/autoSync'
+import { EME_PENDING_EVENT, contarFormulariosPendentes, sincronizarTudo } from '../../store/db'
 
 type SyncBanner = 'idle' | 'syncing' | 'done' | 'error'
 
@@ -76,6 +77,40 @@ function useOnlineStatus() {
   return { online, justReconnected, syncBanner, syncMsg }
 }
 
+/** Contagem de formulários com dados locais que ainda não subiram ao banco —
+ *  persiste na tela (não some sozinha) até realmente sincronizar. */
+function usePendingSync() {
+  const [pendentes, setPendentes] = useState(0)
+  const [sincronizando, setSincronizando] = useState(false)
+
+  const refresh = useCallback(() => {
+    void contarFormulariosPendentes().then(setPendentes)
+  }, [])
+
+  useEffect(() => {
+    refresh()
+    window.addEventListener(EME_PENDING_EVENT, refresh)
+    window.addEventListener('online', refresh)
+    return () => {
+      window.removeEventListener(EME_PENDING_EVENT, refresh)
+      window.removeEventListener('online', refresh)
+    }
+  }, [refresh])
+
+  const sincronizarAgora = useCallback(async () => {
+    if (sincronizando) return
+    setSincronizando(true)
+    try {
+      await sincronizarTudo()
+    } finally {
+      setSincronizando(false)
+      refresh()
+    }
+  }, [sincronizando, refresh])
+
+  return { pendentes, sincronizando, sincronizarAgora }
+}
+
 export type AppPage = 'lista' | 'formulario' | 'acionamento' | 'solicitacoes'
 
 interface Props {
@@ -91,12 +126,15 @@ const NAV = [
 
 export default function AppShell({ page, children }: Props) {
   const { online, justReconnected, syncBanner, syncMsg } = useOnlineStatus()
+  const { pendentes, sincronizando, sincronizarAgora } = usePendingSync()
   const { theme, toggle } = useTheme()
   const { isCampo } = useAppRole()
   const showBanner = !online || justReconnected || syncBanner !== 'idle'
-  const navItems = isCampo ? NAV.filter((item) => item.page !== 'solicitacoes') : NAV
-
   const showHeader = page !== 'formulario'
+  // Na página de formulário o cabeçalho próprio já é sticky top-0 — evita sobrepor
+  // (o indicador de pendência aparece ali mesmo, ver Formulario.tsx).
+  const showPendingBanner = pendentes > 0 && !showBanner && showHeader
+  const navItems = isCampo ? NAV.filter((item) => item.page !== 'solicitacoes') : NAV
 
   return (
     <div className="min-h-svh w-full bg-[#0d0f16] flex flex-col">
@@ -184,6 +222,28 @@ export default function AppShell({ page, children }: Props) {
           ) : (
             <><Wifi size={13} /> Conexão restaurada — sincronizando…</>
           )}
+        </div>
+      )}
+
+      {/* Pendências de sincronização — fica visível até o usuário sincronizar de fato,
+          diferente do toast de "Sincronizado automaticamente" que some sozinho. */}
+      {showPendingBanner && (
+        <div
+          className={`sticky ${showHeader ? 'top-14' : 'top-0'} inset-x-0 z-30 flex items-center justify-center flex-wrap gap-x-2 gap-y-1 py-2 px-4 text-white text-xs font-bold transition-all duration-300`}
+          style={{ background: 'linear-gradient(90deg,#b45309,#d97706)' }}
+        >
+          <CloudUpload size={13} />
+          {pendentes} formulário{pendentes > 1 ? 's' : ''} aguardando sincronizar
+          <button
+            type="button"
+            onClick={sincronizarAgora}
+            disabled={sincronizando}
+            className="ml-1 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wide transition disabled:opacity-60"
+            style={{ background: 'rgba(0,0,0,0.2)' }}
+          >
+            <RefreshCw size={11} className={sincronizando ? 'animate-spin' : ''} />
+            {sincronizando ? 'Enviando…' : 'Sincronizar agora'}
+          </button>
         </div>
       )}
 

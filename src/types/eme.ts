@@ -48,6 +48,10 @@ export interface FormularioEME {
   acionamentoChegadaBase: string
   acionamentoQuebraProgramacao: '' | 'sim' | 'nao'
   acionamentoPep: string
+
+  /** Local apenas — nunca enviado ao Supabase (ver toRow em lib/supabase.ts).
+   *  true = há alterações neste aparelho que ainda não subiram ao banco. */
+  syncPendente?: boolean
 }
 
 export interface HorarioAtendimento {
@@ -88,4 +92,5 @@ export const criarFormularioVazio = (): FormularioEME => ({
   acionamentoChegadaBase: '',
   acionamentoQuebraProgramacao: '',
   acionamentoPep: '',
+  syncPendente: false,
 })

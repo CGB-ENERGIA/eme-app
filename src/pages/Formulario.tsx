@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react'
-import { buscarFormulario, salvarFormulario, sincronizarFormularioAgora } from '../store/db'
+import { buscarFormulario, salvarFormulario, sincronizarFormularioAgora, formularioSyncPendente, EME_PENDING_EVENT } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import DadosIncidente from '../components/sections/DadosIncidente'
@@ -61,6 +61,7 @@ export default function Formulario() {
   const { theme, toggle } = useTheme()
   const [form, setForm] = useState<FormularioEME | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [pendente, setPendente] = useState(false)
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null)
   const [finalizando, setFinalizando] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
@@ -84,6 +85,7 @@ export default function Formulario() {
     buscarFormulario(id).then((f) => {
       if (f) {
         setForm(f)
+        setPendente(!!f.syncPendente)
       } else {
         // Form não existe neste dispositivo (link compartilhado) — cria vazio preservando o ID
         const novo = criarFormularioVazio()
@@ -91,6 +93,19 @@ export default function Formulario() {
         setForm(novo)
       }
     })
+  }, [id])
+
+  // Reflete o status real de sincronização deste formulário — persiste na tela
+  // até realmente subir ao banco (diferente do "saveState", que só confirma o salvamento local).
+  useEffect(() => {
+    if (!id) return
+    const refresh = () => { void formularioSyncPendente(id).then(setPendente) }
+    window.addEventListener(EME_PENDING_EVENT, refresh)
+    window.addEventListener('online', refresh)
+    return () => {
+      window.removeEventListener(EME_PENDING_EVENT, refresh)
+      window.removeEventListener('online', refresh)
+    }
   }, [id])
 
   const salvar = useCallback(async (formAtual: FormularioEME) => {
@@ -256,8 +271,16 @@ export default function Formulario() {
           </div>
 
           <div className="flex items-center gap-2">
-            {saveState === 'saving' && <Loader2 size={16} className="animate-spin opacity-70" />}
-            {saveState === 'saved'  && <CheckCircle size={16} className="text-green-300" />}
+            {pendente && (
+              <span
+                className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full"
+                style={{ background: 'rgba(0,0,0,0.22)', color: '#fed7aa' }}
+                title="Alterações neste aparelho ainda não subiram ao banco"
+              >
+                <Loader2 size={11} className={saveState === 'saving' ? 'animate-spin' : ''} />
+                Não sincronizado
+              </span>
+            )}
             {saveState === 'error'  && <span className="text-xs text-red-300">Erro ao salvar</span>}
 
             <button

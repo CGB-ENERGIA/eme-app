@@ -250,6 +250,17 @@ export function fileToDataUrl(file: File): Promise<string> {
 /** JPEG de alta qualidade — carimbo e PDF precisam de ótima visualização. */
 const PHOTO_JPEG_QUALITY = 0.95
 
+/** Teto de resolução: fotos de câmeras modernas (12-50MP) viram base64 de vários MB,
+ *  o que trava upload em campo com sinal fraco. 1920px no lado maior mantém boa
+ *  legibilidade no PDF/relatório sem inflar o payload. */
+const MAX_PHOTO_DIMENSION = 1920
+
+function computeScaledSize(width: number, height: number, maxDim = MAX_PHOTO_DIMENSION) {
+  if (width <= maxDim && height <= maxDim) return { width, height }
+  const scale = maxDim / Math.max(width, height)
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) }
+}
+
 function canvasToDataUrl(canvas: HTMLCanvasElement, quality = PHOTO_JPEG_QUALITY): Promise<string> {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
@@ -736,14 +747,15 @@ export async function stampPhotoOnImage(
 ): Promise<string> {
   const img = await loadImage(dataUrl)
   const canvas = document.createElement('canvas')
-  canvas.width = img.naturalWidth
-  canvas.height = img.naturalHeight
+  const { width, height } = computeScaledSize(img.naturalWidth, img.naturalHeight)
+  canvas.width = width
+  canvas.height = height
 
   const ctx = canvas.getContext('2d')
   if (!ctx) return dataUrl
 
-  ctx.drawImage(img, 0, 0)
-  drawStampOnContext(ctx, canvas.width, canvas.height, meta)
+  ctx.drawImage(img, 0, 0, width, height)
+  drawStampOnContext(ctx, width, height, meta)
 
   return canvasToDataUrl(canvas)
 }
@@ -754,14 +766,15 @@ export async function captureVideoFrame(
   meta: PhotoMetadata,
 ): Promise<string> {
   const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
+  const { width, height } = computeScaledSize(video.videoWidth, video.videoHeight)
+  canvas.width = width
+  canvas.height = height
 
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas indisponível')
 
-  ctx.drawImage(video, 0, 0)
-  drawStampOnContext(ctx, canvas.width, canvas.height, meta)
+  ctx.drawImage(video, 0, 0, width, height)
+  drawStampOnContext(ctx, width, height, meta)
 
   return canvasToDataUrl(canvas)
 }
@@ -781,9 +794,25 @@ export async function processCameraPhoto(
   return stampPhotoOnImage(dataUrl, { capturedAt, coords, ...context })
 }
 
-/** Processa foto da galeria sem carimbo. */
+/** Processa foto da galeria sem carimbo — ainda assim redimensiona (fotos de 12-50MP
+ *  direto da galeria são o caso mais comum de payload gigante travando o upload em campo). */
 export async function processGalleryPhoto(file: File): Promise<string> {
-  return fileToDataUrl(file)
+  const dataUrl = await fileToDataUrl(file)
+  const img = await loadImage(dataUrl)
+  const { width, height } = computeScaledSize(img.naturalWidth, img.naturalHeight)
+
+  if (width === img.naturalWidth && height === img.naturalHeight) {
+    return dataUrl
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return dataUrl
+
+  ctx.drawImage(img, 0, 0, width, height)
+  return canvasToDataUrl(canvas)
 }
 
 export function isCameraSupported(): boolean {

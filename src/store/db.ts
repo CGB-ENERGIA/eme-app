@@ -27,6 +27,13 @@ interface EmeDB extends DBSchema {
 
 let dbPromise: Promise<IDBPDatabase<EmeDB>> | null = null
 
+/** Dispara sempre que a contagem de formulários pendentes de sincronizar pode ter mudado —
+ *  AppShell/Lista/Solicitações escutam para atualizar o indicador persistente na hora. */
+export const EME_PENDING_EVENT = 'eme-pending-changed'
+function notifyPendingChanged() {
+  window.dispatchEvent(new CustomEvent(EME_PENDING_EVENT))
+}
+
 // Debounce por ID: evita chamadas repetidas ao Supabase enquanto o usuário digita
 const syncTimers = new Map<string, ReturnType<typeof setTimeout>>()
 function debouncedSync(form: FormularioEME, delayMs = 2000) {
@@ -38,16 +45,30 @@ function debouncedSync(form: FormularioEME, delayMs = 2000) {
       try {
         const comUrls = await syncFormulario(form)
         const db = await getDB()
-        // Persiste URLs remotas localmente (evita reupload e perda no próximo sync)
-        if (comUrls !== form) {
-          await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm })
-        }
+        // Marca sincronizado e persiste URLs remotas (evita reupload e perda no próximo sync)
+        await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm, syncPendente: false })
+        notifyPendingChanged()
       } catch (err) {
+        // Fica marcado como pendente (já estava) — indicador na tela avisa o usuário
         logError(err, { scope: 'supabase', action: 'sync-formulario', id: form.id })
       }
     })()
   }, delayMs)
   syncTimers.set(form.id, timer)
+}
+
+/** Conta formulários com alterações locais que ainda não subiram ao banco. */
+export async function contarFormulariosPendentes(): Promise<number> {
+  const db = await getDB()
+  const todos = await db.getAll('formularios')
+  return todos.filter((f) => f.syncPendente).length
+}
+
+/** Leitura local (sem rede) — usado para refletir o status de sync de UM formulário na tela. */
+export async function formularioSyncPendente(id: string): Promise<boolean> {
+  const db = await getDB()
+  const raw = await db.get('formularios', id)
+  return !!raw?.syncPendente
 }
 
 function getDB() {
@@ -120,12 +141,14 @@ export async function sincronizarFormularioAgora(form: FormularioEME): Promise<F
   }
 
   const db = await getDB()
-  const atualizado = { ...form, atualizadoEm: new Date().toISOString() }
+  const atualizado = { ...form, atualizadoEm: new Date().toISOString(), syncPendente: true }
   await db.put('formularios', atualizado)
+  notifyPendingChanged()
 
   const comUrls = await syncFormulario(atualizado)
-  const salvo = { ...comUrls, atualizadoEm: new Date().toISOString() }
+  const salvo = { ...comUrls, atualizadoEm: new Date().toISOString(), syncPendente: false }
   await db.put('formularios', salvo)
+  notifyPendingChanged()
   return salvo
 }
 
@@ -157,6 +180,7 @@ function sanitizeFormulario(raw: unknown): FormularioEME {
     atualizadoEm: typeof source.atualizadoEm === 'string' && source.atualizadoEm ? source.atualizadoEm : base.atualizadoEm,
     status: source.status === 'finalizado' ? 'finalizado' : 'rascunho',
     evidencias: sanitizeEvidencias(source.evidencias),
+    syncPendente: source.syncPendente === true,
   }
 }
 
@@ -183,13 +207,14 @@ function sanitizeAcionamentoRecord(raw: unknown, nameFallback: string): Acioname
 
 export async function salvarFormulario(form: FormularioEME): Promise<void> {
   const db = await getDB()
-  const atualizado = { ...form, atualizadoEm: new Date().toISOString() }
+  const atualizado = { ...form, atualizadoEm: new Date().toISOString(), syncPendente: true }
   try {
     await db.put('formularios', atualizado)
   } catch (error) {
     logError(error, { scope: 'db', action: 'salvar-formulario', id: form.id })
     throw error
   }
+  notifyPendingChanged()
   // Sync remoto com debounce de 2s — evita chamadas repetidas enquanto o usuário digita
   debouncedSync(atualizado)
 }
@@ -263,13 +288,14 @@ export async function sincronizarTudo(): Promise<SyncResult> {
     for (const form of locais) {
       try {
         const comUrls = await syncFormulario(form)
-        await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm })
+        await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm, syncPendente: false })
         enviados++
       } catch (err) {
         ultimoErro = err instanceof Error ? err.message : 'Erro ao sincronizar'
         logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
       }
     }
+    notifyPendingChanged()
 
     const merged = await sincronizarDeSupabase()
     const total = merged.length > 0 ? merged.length : locais.length
