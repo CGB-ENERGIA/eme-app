@@ -12,7 +12,7 @@ export function getStoredTheme(): Theme {
   } catch {
     /* private mode / storage indisponível */
   }
-  return 'light'
+  return 'dark'
 }
 
 export function applyTheme(theme: Theme) {

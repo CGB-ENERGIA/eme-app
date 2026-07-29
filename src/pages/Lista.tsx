@@ -1,19 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Sun, Moon, Zap, Search, X, Share2, Copy, Check, Link, Pencil, RefreshCw } from 'lucide-react'
+import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Zap, Search, X, Share2, Copy, Check, Link, Pencil, RefreshCw } from 'lucide-react'
 import { listarFormularios, excluirFormulario, sincronizarDeSupabase, sincronizarTudo } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
-import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
 import { useAppRole } from '../contexts/RoleContext'
-import LogoCGB from '../components/ui/LogoCGB'
 import { logError } from '../utils/telemetry'
 
 export default function Lista() {
   const navigate = useNavigate()
-  const { theme, toggle } = useTheme()
   const { isSolicitante } = useAppRole()
   const [formularios, setFormularios] = useState<FormularioEME[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -178,74 +175,58 @@ export default function Lista() {
 
       {/* ── HERO HEADER ── */}
       <div
-        className="relative w-full max-w-full overflow-hidden px-3 sm:px-4 md:px-6 lg:px-8 pt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+2.5rem))] pb-6 sm:pb-8 lg:pt-8 lg:pb-10"
-        style={{ background: 'linear-gradient(135deg, #6B0028 0%, #9B003C 45%, #C0014A 100%)' }}
+        className="relative w-full overflow-hidden px-3 sm:px-4 md:px-6 lg:px-8 pt-5 sm:pt-6 lg:pt-8 pb-6 sm:pb-8 lg:pb-10"
+        style={{ background: '#0d0f16' }}
       >
-        <div className="absolute -top-20 -right-20 w-72 h-72 rotate-45 rounded-3xl bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-56 h-56 rotate-45 rounded-2xl bg-white/5 pointer-events-none" />
-        <div className="absolute top-6 right-10 w-16 h-16 rotate-45 rounded-xl bg-white/10 hidden lg:block pointer-events-none" />
+        {/* Glow sutil CGB no topo */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse 80% 120% at 50% -10%, rgba(192,1,74,0.2) 0%, transparent 65%)'
+        }} />
+        {/* Linha separadora inferior */}
+        <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none" style={{
+          background: 'linear-gradient(90deg, transparent 0%, rgba(192,1,74,0.25) 50%, transparent 100%)'
+        }} />
 
-        <div className="relative w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto lg:flex lg:items-center lg:justify-between lg:gap-12 min-w-0">
+        <div className="relative w-full lg:flex lg:items-center lg:justify-between lg:gap-12 min-w-0">
           <div className="lg:flex-1 min-w-0">
-            <div className="flex items-start sm:items-center justify-between gap-2 mb-4 sm:mb-6 lg:mb-4">
-              <div className="flex items-center gap-2.5 sm:gap-3 lg:hidden min-w-0">
-                <div className="bg-white rounded-2xl p-2 shadow-lg shadow-black/20 flex-shrink-0">
-                  <LogoCGB size={32} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-white font-black text-lg sm:text-xl leading-none tracking-tight">CGB</p>
-                  <p className="text-pink-200 text-[10px] sm:text-xs font-semibold tracking-widest uppercase truncate">Engenharia</p>
-                </div>
-              </div>
-
-              <div className="lg:hidden flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={sincronizar}
-                  disabled={sincronizando}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-60"
-                  style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
-                  title="Sincronizar com o banco / R2"
-                >
-                  <RefreshCw size={14} className={sincronizando ? 'animate-spin' : ''} />
-                  {sincronizando ? 'Sync…' : 'Sync'}
-                </button>
-                <button
-                  onClick={toggle}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] rounded-2xl text-xs font-semibold transition-all active:scale-95"
-                  style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
-                  title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-                >
-                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-                  <span className="hidden sm:inline">{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
-                </button>
-              </div>
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <h1 className="font-black text-2xl sm:text-3xl lg:text-4xl leading-tight tracking-tight" style={{ color: '#f0f0f8' }}>
+                Meus formulários
+              </h1>
+              <button
+                type="button"
+                onClick={sincronizar}
+                disabled={sincronizando}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }}
+                title="Sincronizar"
+              >
+                <RefreshCw size={13} className={sincronizando ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">{sincronizando ? 'Sincronizando…' : 'Sincronizar'}</span>
+              </button>
             </div>
-
-            <h1 className="text-white font-black text-2xl sm:text-3xl lg:text-4xl leading-tight mb-1">
-              <span className="lg:hidden">Meus formulários</span>
-              <span className="hidden lg:inline">Atendimento Emergencial</span>
-            </h1>
-            <p className="text-pink-200 text-xs sm:text-sm lg:text-base mb-5 sm:mb-7 lg:mb-0 max-w-md">
-              <span className="lg:hidden">Edite, compartilhe o link ou gere o PDF novamente</span>
-              <span className="hidden lg:inline">Formulários de campo — offline</span>
+            <p className="text-xs sm:text-sm lg:text-base mb-5 sm:mb-6 lg:mb-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Edite, compartilhe o link ou gere o PDF novamente
             </p>
             {syncMsg && (
-              <p className="lg:hidden mb-4 text-xs font-semibold text-pink-100/95 bg-black/15 rounded-xl px-3 py-2 break-words">
+              <p className="mb-4 text-xs font-semibold rounded-xl px-3 py-2 break-words" style={{ color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}>
                 {syncMsg}
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 w-full lg:w-96 lg:flex-shrink-0">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-3 w-full lg:w-80 lg:flex-shrink-0">
             {[
-              { label: 'Total',       value: formularios.length },
-              { label: 'Rascunhos',   value: rascunhos },
-              { label: 'Finalizados', value: finalizados },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-2 sm:px-3 py-2.5 sm:py-3 lg:py-4 text-center border border-white/15 min-w-0">
-                <p className="text-white font-black text-xl sm:text-2xl lg:text-3xl leading-none tabular-nums">{carregando ? '—' : value}</p>
-                <p className="text-pink-200 text-[10px] sm:text-xs mt-1 font-medium truncate">{label}</p>
+              { label: 'Total',       value: formularios.length, accent: 'rgba(255,255,255,0.2)',  num: 'rgba(255,255,255,0.9)' },
+              { label: 'Rascunhos',   value: rascunhos,          accent: '#fbbf24',               num: '#fbbf24' },
+              { label: 'Finalizados', value: finalizados,        accent: '#34d399',               num: '#34d399' },
+            ].map(({ label, value, accent, num }) => (
+              <div key={label} className="rounded-2xl overflow-hidden min-w-0 text-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="h-0.5" style={{ background: accent }} />
+                <div className="px-2 sm:px-3 py-3 lg:py-4">
+                  <p className="font-black text-xl sm:text-2xl lg:text-3xl leading-none tabular-nums" style={{ color: num }}>{carregando ? '—' : value}</p>
+                  <p className="text-[10px] sm:text-xs mt-1.5 font-medium truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{label}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -253,30 +234,27 @@ export default function Lista() {
       </div>
 
       {/* ── CONTEÚDO ── */}
-      <div className="w-full max-w-lg md:max-w-3xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-[max(6rem,calc(env(safe-area-inset-bottom,0px)+5rem))] lg:pb-10 min-w-0">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 pb-10 sm:pb-14 min-w-0">
 
-        <div className="hidden lg:flex flex-col sm:flex-row gap-3 mt-5 lg:mt-8">
+        <div className="flex flex-col sm:flex-row gap-3 mt-5 sm:mt-6 lg:mt-8">
           <button
             onClick={novoFormulario}
-            className="flex flex-1 items-center justify-center gap-2 text-white font-bold py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
-            style={{ background: 'linear-gradient(135deg, #9B003C, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.35)' }}
+            className="flex flex-1 items-center justify-center gap-2.5 text-white font-black py-4 rounded-2xl transition-all active:scale-[0.98] hover:brightness-110 hover:shadow-2xl text-sm tracking-wide"
+            style={{ background: 'linear-gradient(135deg,#7B0029,#C0014A)', boxShadow: '0 8px 28px rgba(160,0,60,0.35)' }}
           >
-            <Plus size={20} strokeWidth={2.5} />
+            <Plus size={18} strokeWidth={2.5} />
             Novo Formulário
           </button>
           <button
             onClick={() => navigate('/acionamento')}
-            className="flex items-center justify-center gap-2 px-5 text-white font-bold py-3.5 rounded-2xl shadow-lg transition-all active:scale-95 hover:brightness-110"
-            style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
+            className="flex items-center justify-center gap-2.5 px-8 text-white font-black py-4 rounded-2xl transition-all active:scale-[0.98] hover:brightness-110 text-sm tracking-wide"
+            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 28px rgba(37,99,235,0.28)' }}
           >
-            <Zap size={20} strokeWidth={2.5} />
+            <Zap size={18} strokeWidth={2.5} />
             Acionamento
           </button>
         </div>
 
-        <p className="lg:hidden mt-4 sm:mt-5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 leading-snug">
-          Use <span className="text-[#9B003C]">Editar</span>, <span className="text-[#9B003C]">PDF</span> ou <span className="text-[#9B003C]">Enviar</span> em cada ocorrência.
-        </p>
 
         {!carregando && formularios.length > 0 && (
           <>
@@ -288,7 +266,8 @@ export default function Lista() {
                 placeholder="Pesquisar incidente, equipe, município..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full min-w-0 pl-9 pr-9 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C0014A] focus:border-transparent transition"
+                className="w-full min-w-0 pl-9 pr-9 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C0014A]/50 focus:border-[#C0014A]/50 transition"
+                style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)' }}
               />
               {busca && (
                 <button
@@ -306,14 +285,10 @@ export default function Lista() {
               <div className="flex gap-2 px-3 sm:px-4 md:px-0 overflow-x-auto pb-1 scrollbar-none touch-pan-x">
                 <button
                   onClick={() => setBaseAtiva(null)}
-                  className={`flex-shrink-0 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all active:scale-95 ${
-                    !baseAtiva
-                      ? 'text-white'
-                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                  }`}
+                  className="flex-shrink-0 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all active:scale-95"
                   style={!baseAtiva
-                    ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
-                    : undefined}
+                    ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', boxShadow: '0 2px 10px rgba(192,1,74,0.35)' }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.09)' }}
                 >
                   Geral
                 </button>
@@ -323,14 +298,10 @@ export default function Lista() {
                     <button
                       key={base}
                       onClick={() => setBaseAtiva(b => b === base ? null : base)}
-                      className={`flex-shrink-0 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all active:scale-95 ${
-                        active
-                          ? 'text-white'
-                          : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600'
-                      }`}
+                      className="flex-shrink-0 px-3.5 py-2 min-h-[40px] rounded-full text-xs font-bold transition-all active:scale-95"
                       style={active
-                        ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', boxShadow: '0 2px 8px rgba(160,0,60,0.3)' }
-                        : undefined}
+                        ? { background: 'linear-gradient(135deg,#9B003C,#C0014A)', color: 'white', boxShadow: '0 2px 10px rgba(192,1,74,0.35)' }
+                        : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.09)' }}
                     >
                       {base}
                     </button>
@@ -342,29 +313,29 @@ export default function Lista() {
         )}
 
         {!carregando && formularios.length > 0 && (
-          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-5 mb-3 px-1">
+          <p className="text-xs font-bold uppercase tracking-widest mt-5 mb-3 px-1" style={{ color: 'rgba(255,255,255,0.22)' }}>
             {termo ? `${formulariosFiltrados.length} resultado${formulariosFiltrados.length !== 1 ? 's' : ''}` : 'Registros recentes'}
           </p>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 min-w-0">
           {carregando && (
-            <div className="text-center py-16 text-slate-400 md:col-span-2 xl:col-span-3">
-              <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full mx-auto mb-3"
-                style={{ borderColor: '#C0014A', borderTopColor: 'transparent' }} />
+            <div className="text-center py-16 sm:col-span-2 lg:col-span-3 xl:col-span-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <div className="animate-spin w-8 h-8 border-2 rounded-full mx-auto mb-3"
+                style={{ borderColor: 'rgba(192,1,74,0.3)', borderTopColor: '#C0014A' }} />
               <p className="text-sm">Carregando registros...</p>
             </div>
           )}
 
           {!carregando && formularios.length === 0 && (
-            <div className="text-center py-16 md:col-span-2 xl:col-span-3">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
+            <div className="text-center py-16 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+              <div className="rounded-3xl p-6 sm:p-8 mx-auto max-w-xs" style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
-                  style={{ background: '#FFF0F4' }}>
+                  style={{ background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.2)' }}>
                   <FileText size={28} style={{ color: '#C0014A' }} />
                 </div>
-                <p className="font-bold text-slate-700 dark:text-slate-200 text-base">Nenhum registro ainda</p>
-                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed">
+                <p className="font-bold text-base" style={{ color: 'rgba(255,255,255,0.8)' }}>Nenhum registro ainda</p>
+                <p className="text-sm mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   {isSolicitante
                     ? 'Toque em Solicitações para abrir um atendimento, ou aguarde o link da equipe.'
                     : 'Aguarde o link da equipe para preencher um atendimento.'}
@@ -374,14 +345,14 @@ export default function Lista() {
           )}
 
           {!carregando && formularios.length > 0 && formulariosFiltrados.length === 0 && (
-            <div className="text-center py-12 md:col-span-2 xl:col-span-3">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-700 mx-auto max-w-xs">
+            <div className="text-center py-12 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+              <div className="rounded-3xl p-6 sm:p-8 mx-auto max-w-xs" style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
-                  style={{ background: '#FFF0F4' }}>
+                  style={{ background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.2)' }}>
                   <Search size={28} style={{ color: '#C0014A' }} />
                 </div>
-                <p className="font-bold text-slate-700 dark:text-slate-200 text-base">Nenhum resultado</p>
-                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1 leading-relaxed break-words">
+                <p className="font-bold text-base" style={{ color: 'rgba(255,255,255,0.8)' }}>Nenhum resultado</p>
+                <p className="text-sm mt-1 leading-relaxed break-words" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   Nenhum formulário encontrado para &quot;{busca}&quot;.
                 </p>
               </div>
@@ -391,142 +362,138 @@ export default function Lista() {
           {formulariosFiltrados.map((f) => (
             <div
               key={f.id}
-              className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden transition-colors duration-300 min-w-0 flex flex-col"
-              style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.07)', border: theme === 'dark' ? '1px solid #334155' : '1px solid #F0E4EA' }}
+              className="group rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl"
+              style={{
+                background: '#141820',
+                border: '1px solid rgba(255,255,255,0.07)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+              }}
             >
-              <div className="h-1.5 w-full flex-shrink-0" style={{
+              {/* Status accent line */}
+              <div className="h-px w-full flex-shrink-0" style={{
                 background: f.status === 'finalizado'
-                  ? 'linear-gradient(90deg, #059669, #10b981)'
-                  : 'linear-gradient(90deg, #d97706, #fbbf24)'
+                  ? 'linear-gradient(90deg,#059669,#10b981)'
+                  : 'linear-gradient(90deg,#d97706,#fbbf24)'
               }} />
 
+              {/* Clickable card body */}
               <button
                 onClick={() => navigate(`/formulario/${f.id}`)}
-                className="w-full min-w-0 text-left px-3 sm:px-4 pt-3 pb-3 active:bg-slate-50 dark:active:bg-slate-700 lg:hover:bg-slate-50 dark:lg:hover:bg-slate-700/50 transition-colors flex-1"
+                className="flex-1 text-left px-4 pt-4 pb-3.5 transition-colors active:bg-white/5 lg:hover:bg-white/[0.03]"
               >
-                <div className="flex items-start justify-between gap-2 min-w-0">
-                  <div className="flex-1 min-w-0">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full mb-2 ${
-                      f.status === 'finalizado'
-                        ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30'
-                        : 'text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30'
-                    }`}>
-                      {f.status === 'finalizado' ? <CheckCircle size={10} /> : <Clock size={10} />}
-                      {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
-                    </span>
-
-                    <p className="font-black text-slate-800 dark:text-slate-100 text-base sm:text-lg leading-tight truncate">
-                      {f.incidente || 'Sem identificação'}
-                    </p>
-
-                    <div className="mt-3 space-y-1.5 min-w-0">
-                      {(f.dataInicio || f.dataFinal) && (
-                        <div className="flex items-start gap-2 min-w-0">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 w-14 flex-shrink-0 pt-0.5">Período</span>
-                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 min-w-0 break-words">
-                            {formatarDataServico(f.dataInicio)}
-                            {f.dataFinal && f.dataFinal !== f.dataInicio && (
-                              <span className="text-slate-400 dark:text-slate-500 font-normal"> → {formatarDataServico(f.dataFinal)}</span>
-                            )}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2 min-w-0">
-                        {f.base && (
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Base</p>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{f.base}</p>
-                          </div>
-                        )}
-                        {f.municipio && (
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Município</p>
-                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{f.municipio}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {f.equipe && (
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Equipe</p>
-                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{f.equipe}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-3 font-medium leading-snug">
-                      Salvo {formatarData(f.atualizadoEm)}
-                      {f.status === 'finalizado' && (
-                        <span className="text-emerald-600 dark:text-emerald-400"> · editável</span>
-                      )}
-                    </p>
-                  </div>
-
-                  <ChevronRight size={16} className="text-slate-300 dark:text-slate-600 mt-1 flex-shrink-0" />
+                {/* Status badge + chevron */}
+                <div className="flex items-center justify-between mb-3">
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                    style={f.status === 'finalizado'
+                      ? { color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }
+                      : { color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
+                  >
+                    {f.status === 'finalizado' ? <CheckCircle size={9} /> : <Clock size={9} />}
+                    {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
+                  </span>
+                  <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-all flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
                 </div>
+
+                {/* Incident number */}
+                <p className="font-black text-xl sm:text-2xl leading-none tracking-tight truncate mb-4" style={{ color: '#f0f0f8' }}>
+                  {f.incidente || <span className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>Sem identificação</span>}
+                </p>
+
+                {/* Metadata grid */}
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 mb-3.5">
+                  {(f.dataInicio || f.dataFinal) && (
+                    <div className="col-span-2">
+                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Período</p>
+                      <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                        {formatarDataServico(f.dataInicio)}
+                        {f.dataFinal && f.dataFinal !== f.dataInicio && (
+                          <span style={{ color: 'rgba(255,255,255,0.35)' }}> → {formatarDataServico(f.dataFinal)}</span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {f.base && (
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Base</p>
+                      <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.base}</p>
+                    </div>
+                  )}
+                  {f.municipio && (
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Município</p>
+                      <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.municipio}</p>
+                    </div>
+                  )}
+                  {f.equipe && (
+                    <div className="col-span-2">
+                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Equipe</p>
+                      <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.equipe}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Timestamp */}
+                <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                  Salvo {formatarData(f.atualizadoEm)}
+                  {f.status === 'finalizado' && (
+                    <span style={{ color: '#34d399', fontWeight: 600 }}> · editável</span>
+                  )}
+                </p>
               </button>
 
-              <div className="mx-3 sm:mx-4 h-px bg-slate-100 dark:bg-slate-700" />
-
-              {/* Botão Acionamento */}
-              <div className="px-3 sm:px-4 pt-3 pb-0">
+              {/* Actions */}
+              <div className="px-3 pb-3 pt-2.5 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Primary: Acionamento */}
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente } }) }}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
-                  style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 2px 8px rgba(37,99,235,0.25)' }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
                 >
-                  <Zap size={13} />
+                  <Zap size={13} strokeWidth={2.5} />
                   Acionamento
                 </button>
-              </div>
 
-              {/* Ações: grade estável no celular/tablet */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:px-4 sm:py-3">
-                <button
-                  onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
-                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 border-2"
-                  style={{ borderColor: '#F0C0CC', color: '#9B003C', background: theme === 'dark' ? 'rgba(192,1,74,0.12)' : '#FFF5F8' }}
-                  title="Abrir e editar ocorrência"
-                >
-                  <Pencil size={13} />
-                  Editar
-                </button>
+                {/* Secondary actions */}
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97]"
+                    style={{ color: '#ff6b9d', background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.25)' }}
+                  >
+                    <Pencil size={12} />
+                    Editar
+                  </button>
 
-                <button
-                  onClick={(e) => gerarPDF(e, f)}
-                  disabled={exportandoPDF === f.id}
-                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50 text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, #7B0029, #C0014A)',
-                    boxShadow: '0 2px 8px rgba(160,0,60,0.3)'
-                  }}
-                >
-                  {exportandoPDF === f.id
-                    ? <Loader2 size={13} className="animate-spin" />
-                    : <FileDown size={13} />}
-                  PDF
-                </button>
+                  <button
+                    onClick={(e) => gerarPDF(e, f)}
+                    disabled={exportandoPDF === f.id}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97] disabled:opacity-40"
+                    style={{ background: 'linear-gradient(135deg,#7B0029,#C0014A)', boxShadow: '0 2px 8px rgba(192,1,74,0.25)' }}
+                  >
+                    {exportandoPDF === f.id ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+                    PDF
+                  </button>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); setCompartilhando(f.id) }}
-                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-bold transition-all active:scale-95 text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, #14532d, #16a34a)',
-                    boxShadow: '0 2px 8px rgba(22,163,74,0.3)'
-                  }}
-                >
-                  <Share2 size={13} />
-                  Enviar
-                </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCompartilhando(f.id) }}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
+                    style={{ background: 'linear-gradient(135deg,#14532d,#16a34a)', boxShadow: '0 2px 8px rgba(22,163,74,0.25)' }}
+                  >
+                    <Share2 size={12} />
+                    Enviar
+                  </button>
 
-                <button
-                  onClick={() => setExcluindo(f.id)}
-                  className="flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-[44px] rounded-2xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border border-slate-200 dark:border-slate-600 transition"
-                >
-                  <Trash2 size={13} />
-                  Excluir
-                </button>
+                  <button
+                    onClick={() => setExcluindo(f.id)}
+                    className="flex items-center justify-center w-10 rounded-xl transition-all"
+                    style={{ color: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -543,7 +510,8 @@ export default function Lista() {
             onClick={() => !gerandoShare && setCompartilhando(null)}
           >
             <div
-              className="bg-white dark:bg-slate-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm max-h-[min(90svh,40rem)] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl"
+              className="rounded-t-3xl sm:rounded-3xl w-full max-w-sm max-h-[min(90svh,40rem)] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl"
+              style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.09)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
@@ -551,19 +519,19 @@ export default function Lista() {
                   style={{ background: '#F0FDF4' }}>
                   <Share2 size={24} className="text-green-600" />
                 </div>
-                <h3 className="font-black text-xl text-slate-800 dark:text-slate-100">Compartilhar</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                  Incidente <span className="font-bold text-slate-700 dark:text-slate-200">{form.incidente || '—'}</span>
+                <h3 className="font-black text-xl" style={{ color: '#f0f0f8' }}>Compartilhar</h3>
+                <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  Incidente <span className="font-bold" style={{ color: 'rgba(255,255,255,0.8)' }}>{form.incidente || '—'}</span>
                 </p>
               </div>
 
               {/* ── Link do formulário ── */}
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   <Link size={11} /> Link para preenchimento
                 </p>
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-3 py-2.5 border border-slate-200 dark:border-slate-600">
-                  <p className="flex-1 text-xs font-mono text-slate-600 dark:text-slate-300 truncate">
+                <div className="flex items-center gap-2 rounded-2xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                  <p className="flex-1 text-xs font-mono truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>
                     {urlDeFormulario(form.id)}
                   </p>
                   <button
@@ -596,7 +564,7 @@ export default function Lista() {
 
               {/* ── Compartilhar PDF ── */}
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   <FileDown size={11} /> Enviar PDF
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -624,7 +592,8 @@ export default function Lista() {
               <button
                 onClick={() => { setCompartilhando(null); setCopiadoLink(false) }}
                 disabled={gerandoShare}
-                className="w-full py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-600 font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-sm"
+                className="w-full py-3 rounded-2xl font-bold transition text-sm"
+                style={{ color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}
               >
                 Cancelar
               </button>
@@ -640,28 +609,32 @@ export default function Lista() {
           onClick={() => setExcluindo(null)}
         >
           <div
-            className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm p-6 space-y-5 shadow-2xl"
+            className="rounded-3xl w-full max-w-sm p-6 space-y-5 shadow-2xl"
+            style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.09)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl w-14 h-14 flex items-center justify-center mx-auto mb-4">
-                <Trash2 size={24} className="text-red-500" />
+              <div className="rounded-2xl w-14 h-14 flex items-center justify-center mx-auto mb-4"
+                style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.2)' }}>
+                <Trash2 size={24} style={{ color: '#f87171' }} />
               </div>
-              <h3 className="font-black text-xl text-slate-800 dark:text-slate-100">Excluir formulário?</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 leading-relaxed">
+              <h3 className="font-black text-xl" style={{ color: '#f0f0f8' }}>Excluir formulário?</h3>
+              <p className="text-sm mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.38)' }}>
                 Esta ação não pode ser desfeita. Todos os dados e fotos serão permanentemente removidos.
               </p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setExcluindo(null)}
-                className="flex-1 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-600 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                className="flex-1 py-3.5 rounded-2xl font-bold transition"
+                style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => excluir(excluindo)}
-                className="flex-1 py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold transition shadow-md shadow-red-200"
+                className="flex-1 py-3.5 rounded-2xl text-white font-bold transition"
+                style={{ background: 'linear-gradient(135deg,#b91c1c,#ef4444)', boxShadow: '0 4px 16px rgba(239,68,68,0.3)' }}
               >
                 Excluir
               </button>
@@ -670,9 +643,9 @@ export default function Lista() {
         </div>
       )}
       {/* ── RODAPÉ CRIADOR ── */}
-      <div className="max-w-lg mx-auto lg:max-w-6xl px-4 lg:px-8 py-6 mt-2">
+      <div className="px-4 lg:px-8 py-6 mt-2">
         <div className="flex flex-col items-center gap-1.5 text-center">
-          <p className="text-[11px] text-slate-400 dark:text-slate-600 font-medium tracking-wide uppercase">
+          <p className="text-[11px] font-medium tracking-wide uppercase" style={{ color: 'rgba(255,255,255,0.15)' }}>
             Desenvolvido por
           </p>
           <a
@@ -681,7 +654,7 @@ export default function Lista() {
             rel="noopener noreferrer"
             className="flex items-center gap-2 group"
           >
-            <span className="text-sm font-black text-slate-500 dark:text-slate-400 group-hover:text-[#C0014A] transition-colors">
+            <span className="text-sm font-black transition-colors group-hover:text-[#C0014A]" style={{ color: 'rgba(255,255,255,0.25)' }}>
               Italo Fontes
             </span>
             <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-[#E1306C] transition-colors">
