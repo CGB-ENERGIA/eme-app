@@ -142,7 +142,6 @@ export default function Formulario() {
       return
     }
     setFinalizando(true)
-    const jaFinalizado = form.status === 'finalizado'
     try {
       const atualizado = { ...form, status: 'finalizado' as const }
 
@@ -433,8 +432,8 @@ export default function Formulario() {
                 <CheckCircle size={18} />
               )}
               {finalizando
-                ? (jaFinalizado ? 'Atualizando PDF…' : 'Gerando PDF…')
-                : (jaFinalizado ? 'Salvar e atualizar PDF' : 'Finalizar')}
+                ? (jaFinalizado ? 'Atualizando…' : 'Finalizando…')
+                : (jaFinalizado ? 'Salvar atualização' : 'Finalizar')}
             </button>
           ) : (
             <button

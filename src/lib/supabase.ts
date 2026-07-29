@@ -28,6 +28,7 @@ function toRow(form: FormularioEME): Row {
     observacao: form.observacao,
     evidencias: form.evidencias.map((ev) => ({
       descricao: ev.descricao,
+      descricao2: ev.descricao2,
       foto1: isRemoteUrl(ev.foto1) ? ev.foto1 : null,
       foto2: isRemoteUrl(ev.foto2) ? ev.foto2 : null,
     })),
