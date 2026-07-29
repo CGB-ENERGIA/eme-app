@@ -6,7 +6,7 @@ let _logoCache: string | null = null
 async function getLogoBase64(): Promise<string | null> {
   if (_logoCache) return _logoCache
   try {
-    const res  = await fetch('/favicon.png')
+    const res  = await fetch('/logo-cgb.png')
     const blob = await res.blob()
     return await new Promise((resolve) => {
       const reader = new FileReader()
@@ -104,9 +104,9 @@ function headerPage(doc: jsPDF, logoBase64?: string | null) {
   doc.setFillColor(255, 255, 255)
   doc.rect(0, 0, W, 30, 'F')
 
-  // Logo CGB — proporção vertical (~3:4) como na imagem original
-  const logoH = 22
-  const logoW = logoH * 0.75
+  // Logo CGB — símbolo quadrado (diamante sem fundo)
+  const logoH = 20
+  const logoW = logoH * 0.82
   const logoX = MX
   const logoY = 3
   if (logoBase64) {
