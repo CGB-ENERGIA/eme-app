@@ -24,12 +24,23 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
   const [processing, setProcessing] = useState(false)
   const [cameraOpen, setCameraOpen] = useState(false)
   const [showSugg, setShowSugg] = useState(false)
+  const [descError, setDescError] = useState(false)
 
   // Ref para sempre chamar a versão mais recente do onChange (evita stale closure no handlePaste)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
+  const requireDesc = (): boolean => {
+    if (onLabelChange && label.trim().length === 0) {
+      setDescError(true)
+      return false
+    }
+    setDescError(false)
+    return true
+  }
+
   const openCamera = () => {
+    if (!requireDesc()) return
     geoPrefetch.current = getBestCoordinates()
     if (isCameraSupported()) {
       setCameraOpen(true)
@@ -67,6 +78,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
   }, []) // eslint-disable-line react-hooks/exhaustive-deps — handleFile usa onChangeRef.current (sempre atualizado)
 
   const colarDoClipboard = async () => {
+    if (!requireDesc()) return
     try {
       const clipboardItems = await navigator.clipboard.read()
       for (const item of clipboardItems) {
@@ -109,9 +121,10 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
             <input
               type="text"
               value={label}
-              onChange={(e) =>
+              onChange={(e) => {
                 onLabelChange(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s\-0-9°#/]/g, '').toUpperCase())
-              }
+                if (descError) setDescError(false)
+              }}
               onFocus={() => setShowSugg(true)}
               onBlur={() => setTimeout(() => setShowSugg(false), 150)}
               placeholder="DESCREVA A FOTO"
@@ -172,60 +185,68 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
         </div>
       ) : (
         <div
-          className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${
-            hasError
-              ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
-              : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700'
+          className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 overflow-hidden ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${
+            descError
+              ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20'
+              : hasError
+                ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
+                : 'border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700'
           }`}
           onPaste={handlePaste}
           tabIndex={0}
         >
           {processing ? (
             <>
-              <Loader2 size={28} className="animate-spin" style={{ color: '#C0014A' }} />
-              <span className="text-xs font-medium text-slate-500">Processando foto...</span>
+              <Loader2 size={24} className="animate-spin" style={{ color: '#C0014A' }} />
+              <span className="text-xs font-medium text-slate-500">Processando...</span>
             </>
+          ) : descError ? (
+            <span className="text-xs font-semibold text-orange-600 text-center px-3 leading-snug">
+              Preencha o descritivo antes de adicionar a foto
+            </span>
           ) : (
             <>
-              <div className="flex gap-3">
+              <div className={`flex ${small ? 'gap-2' : 'gap-3'}`}>
                 <button
                   type="button"
                   onClick={openCamera}
                   className="flex flex-col items-center gap-1 transition"
                   style={{ color: '#9B003C' }}
                 >
-                  <div className="rounded-xl p-2.5" style={{ background: '#FFF0F4' }}>
-                    <Camera size={20} />
+                  <div className={`rounded-xl ${small ? 'p-2' : 'p-2.5'}`} style={{ background: '#FFF0F4' }}>
+                    <Camera size={small ? 16 : 20} />
                   </div>
-                  <span className="text-xs font-medium">Câmera</span>
+                  <span className="text-[10px] font-medium">Câmera</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                  onClick={() => { if (requireDesc()) fileRef.current?.click() }}
+                  className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 transition"
                 >
-                  <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-2.5">
-                    <Upload size={20} />
+                  <div className={`bg-slate-100 dark:bg-slate-600 rounded-xl ${small ? 'p-2' : 'p-2.5'}`}>
+                    <Upload size={small ? 16 : 20} />
                   </div>
-                  <span className="text-xs font-medium">Galeria</span>
+                  <span className="text-[10px] font-medium">Galeria</span>
                 </button>
                 <button
                   type="button"
                   onClick={colarDoClipboard}
-                  className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                  className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 transition"
                 >
-                  <div className="bg-slate-100 dark:bg-slate-600 rounded-xl p-2.5">
-                    <Clipboard size={20} />
+                  <div className={`bg-slate-100 dark:bg-slate-600 rounded-xl ${small ? 'p-2' : 'p-2.5'}`}>
+                    <Clipboard size={small ? 16 : 20} />
                   </div>
-                  <span className="text-xs font-medium">Colar</span>
+                  <span className="text-[10px] font-medium">Colar</span>
                 </button>
               </div>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center px-3">
-                Câmera · Galeria · Cole print com Ctrl+V
-              </span>
+              {!small && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center px-3">
+                  Câmera · Galeria · Cole print com Ctrl+V
+                </span>
+              )}
             </>
           )}
-          {hasError && !processing && (
+          {hasError && !processing && !descError && (
             <span className="text-xs text-red-500 font-medium">Foto obrigatória</span>
           )}
         </div>

@@ -96,10 +96,12 @@ export default function AppShell({ page, children }: Props) {
   const showBanner = !online || justReconnected || syncBanner !== 'idle'
   const navItems = isCampo ? NAV.filter((item) => item.page !== 'solicitacoes') : NAV
 
+  const showHeader = page !== 'formulario'
+
   return (
     <div className="min-h-svh w-full bg-[#0d0f16] flex flex-col">
-      {/* Top navbar */}
-      <header
+      {/* Top navbar — hidden on the form-filling page (has its own header) */}
+      {showHeader && <header
         className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 flex-shrink-0"
         style={{ background: '#0f0b0e', borderBottom: '1px solid rgba(192,1,74,0.18)' }}
       >
@@ -157,12 +159,12 @@ export default function AppShell({ page, children }: Props) {
         >
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-      </header>
+      </header>}
 
       {/* Sync / connection banner */}
       {showBanner && (
         <div
-          className="sticky top-14 inset-x-0 z-30 flex items-center justify-center py-2 px-4 text-white text-xs font-bold gap-2 transition-all duration-300"
+          className={`sticky ${showHeader ? 'top-14' : 'top-0'} inset-x-0 z-30 flex items-center justify-center py-2 px-4 text-white text-xs font-bold gap-2 transition-all duration-300`}
           style={{
             background: !online
               ? 'linear-gradient(90deg,#b91c1c,#dc2626)'
