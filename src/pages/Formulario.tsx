@@ -162,35 +162,6 @@ export default function Formulario() {
         )
       }
 
-      const { exportarPDF } = await import('../utils/exportPDF')
-      const result = (await exportarPDF(salvo, 'blob')) as { blob: Blob; nome: string }
-      const file = new File([result.blob], result.nome, { type: 'application/pdf' })
-
-      const url = URL.createObjectURL(result.blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = result.nome
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-
-      if (navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: `EME ${salvo.incidente}`,
-            text: jaFinalizado
-              ? `Formulário EME atualizado — Incidente ${salvo.incidente}`
-              : `Formulário EME — Incidente ${salvo.incidente}`,
-          })
-        } catch (error) {
-          if ((error as Error).name !== 'AbortError') {
-            logError(error, { scope: 'formulario', action: 'compartilhar-pdf-finalizar' })
-          }
-        }
-      }
-
       navigate('/formularios')
     } catch (error) {
       logError(error, { scope: 'formulario', action: 'finalizar' })
