@@ -307,13 +307,48 @@ export default function Acionamento() {
               <div className="space-y-3">
                 <div className="flex flex-col gap-1.5">
                   <Label>Responsável EQTL Acionamento</Label>
-                  <Input value={data.responsavelEqtl} onChange={(v) => set({ responsavelEqtl: v })}
-                    placeholder="Nome do responsável" />
+                  <input
+                    list="responsavel-eqtl-list"
+                    value={data.responsavelEqtl}
+                    onChange={(e) => set({ responsavelEqtl: e.target.value.toUpperCase() })}
+                    placeholder="Nome do responsável"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm font-medium px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-pink-300 dark:focus:ring-pink-700"
+                  />
+                  <datalist id="responsavel-eqtl-list">
+                    <option value="ANDERSON APOLIANO" />
+                    <option value="BRITO" />
+                    <option value="CARLOS MALDINE" />
+                    <option value="ESPEDITO EMERICIANO" />
+                    <option value="FRANCISCO FRAZÃO" />
+                    <option value="GLEICIANO MOURA" />
+                    <option value="ISAC SANTOS" />
+                    <option value="OTTON CILIO" />
+                    <option value="EUSEBIO LINHARES" />
+                    <option value="FRANCISCO DIAS" />
+                    <option value="ADRIANNO BENEDICTO" />
+                    <option value="IGOR JORDÃO" />
+                    <option value="SIDNEY DA SILVA" />
+                    <option value="BRUCKNER HAHNEMANN" />
+                    <option value="WOLNEY SILVA" />
+                    <option value="FRANCISCO CARLOS" />
+                    <option value="PAULO VITOR DIAS" />
+                    <option value="FABIANO ALVES" />
+                  </datalist>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>Via</Label>
-                  <Input value={data.via} onChange={(v) => set({ via: v })}
-                    placeholder="Ex: Telefone, Rádio..." />
+                  <select
+                    value={data.via}
+                    onChange={(e) => set({ via: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm font-medium px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-pink-300 dark:focus:ring-pink-700"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="WHATSAPP">WHATSAPP</option>
+                    <option value="EMAIL">EMAIL</option>
+                    <option value="LIGAÇÃO">LIGAÇÃO</option>
+                  </select>
                 </div>
               </div>
             </div>
