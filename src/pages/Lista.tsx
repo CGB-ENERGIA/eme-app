@@ -458,7 +458,7 @@ export default function Lista() {
               <div className="px-3 pb-3 pt-2.5 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 {/* Primary: Acionamento */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente } }) }}
+                  onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente, formId: f.id } }) }}
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
                   style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
                 >

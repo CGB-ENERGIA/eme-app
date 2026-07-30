@@ -97,6 +97,9 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
   // Foto obrigatória se explicitamente required OU se o rótulo foi preenchido
   const isRequired = required || (!!onLabelChange && label.trim().length > 0)
   const hasError = showError && isRequired && !value
+  // Derivado do conteúdo atual do campo — assim que o descritivo é preenchido
+  // (digitando ou escolhendo uma sugestão), o aviso some sozinho.
+  const showDescError = descError && label.trim().length === 0
 
   const filteredSugg = labelSuggestions?.length
     ? label.trim()
@@ -147,6 +150,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
                       e.preventDefault()
                       onLabelChange(s)
                       setShowSugg(false)
+                      if (descError) setDescError(false)
                     }}
                     className="w-full text-left px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
                     style={{ color: '#64748b' }}
@@ -186,7 +190,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
       ) : (
         <div
           className={`rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 overflow-hidden ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${
-            descError
+            showDescError
               ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20'
               : hasError
                 ? 'border-red-400 bg-red-50 dark:bg-red-900/20'
@@ -200,7 +204,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
               <Loader2 size={24} className="animate-spin" style={{ color: '#C0014A' }} />
               <span className="text-xs font-medium text-slate-500">Processando...</span>
             </>
-          ) : descError ? (
+          ) : showDescError ? (
             <span className="text-xs font-semibold text-orange-600 text-center px-3 leading-snug">
               Preencha o descritivo antes de adicionar a foto
             </span>
@@ -246,7 +250,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
               )}
             </>
           )}
-          {hasError && !processing && !descError && (
+          {hasError && !processing && !showDescError && (
             <span className="text-xs text-red-500 font-medium">Foto obrigatória</span>
           )}
         </div>

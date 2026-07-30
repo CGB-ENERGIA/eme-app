@@ -67,7 +67,9 @@ function imageFormat(src: string): 'PNG' | 'JPEG' {
 const PDF_IMAGE_QUALITY = 0.95
 
 async function addPdfImage(doc: jsPDF, src: string, x: number, y: number, w: number, h: number): Promise<void> {
-  // Re-encoda via canvas para garantir compatibilidade com Adobe Reader
+  // Re-encoda via canvas para garantir compatibilidade com Adobe Reader.
+  // Sem corte: a imagem inteira é sempre exibida (o carimbo de data/hora/GPS nunca
+  // é perdido), ajustando-se ao quadro mesmo que isso estique levemente a proporção.
   return new Promise<void>((resolve) => {
     const img = new Image()
     img.onload = () => {
@@ -104,9 +106,10 @@ function headerPage(doc: jsPDF, logoBase64?: string | null) {
   doc.setFillColor(255, 255, 255)
   doc.rect(0, 0, W, 30, 'F')
 
-  // Logo CGB — símbolo quadrado (diamante sem fundo)
+  // Logo CGB — proporção real do arquivo (396×596), evita esticar/alargar o diamante
+  const LOGO_ASPECT = 396 / 596
   const logoH = 20
-  const logoW = logoH * 0.82
+  const logoW = logoH * LOGO_ASPECT
   const logoX = MX
   const logoY = 3
   if (logoBase64) {
@@ -433,31 +436,6 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
   // Coordenadas das células de acionamento (metadata gravado ao final do PDF)
   const acionamentoCoords = [yLinha1, yLinha2, yLinha3, respW, halfRow, labelH, pepRowH, MX, COL, PAGE_H].join(',')
 
-  // ── INTERVALO E ENERGIZAÇÃO ──────────────────────────────────
-  if (form.horaEnergizacao) {
-    checkPage(30)
-    y = sectionTitle(doc, 'Intervalo e Energização', y)
-
-    const tercW = (COL - 8) / 3
-
-    const boxes = [
-      { label: 'Hora de Energização', value: fmtHora(form.horaEnergizacao) },
-      { label: 'Houve Intervalo?',     value: form.houveIntervalo ? 'Sim' : 'Não' },
-      { label: 'Duração do Intervalo', value: form.houveIntervalo ? duracaoLabel(form.duracaoIntervalo) : '—' },
-    ]
-
-    for (const [i, box] of boxes.entries()) {
-      const bx = MX + i * (tercW + 4)
-      infoBox(doc, bx, y, tercW, 18)
-      fieldLabel(doc, box.label, bx + 3, y + 5)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(10)
-      doc.setTextColor(i === 0 ? CGB.dark[0] : CGB.ink[0], i === 0 ? CGB.dark[1] : CGB.ink[1], i === 0 ? CGB.dark[2] : CGB.ink[2])
-      doc.text(box.value, bx + 3, y + 14)
-    }
-    y += 23
-  }
-
   // ── QUEBRA DE PÁGINA: página 2 começa com Fotos ───────────────
   doc.addPage()
   page++
@@ -469,13 +447,13 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
   y = sectionTitle(doc, 'Fotos do Serviço', y)
 
   const fotoW = (COL - 4) / 2
-  const fotoH = fotoW * 0.72
+  // Sempre 4 fotos fixas (2 linhas) — aproveita o espaço vertical da página com fotos maiores
+  const fotoH = 100
 
   const fotasFixas = [
     { label: 'Acionamento',                           src: form.fotoAcionamento },
     { label: 'Saída da equipe da base',               src: form.fotoSaidaBase },
     { label: 'Chegada da equipe no local de serviço', src: form.fotoChegadaServico },
-    { label: 'Foto da Energização do Sistema',        src: form.fotoEnergizacao },
     { label: 'Chegada da equipe na base pós atendimento', src: form.fotoChegadaBasePosAtendimento },
   ]
 
@@ -530,6 +508,55 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
   if (col2) y = rowStartY + fotoH + 10
   y += 4
 
+  // ── QUEBRA DE PÁGINA: página própria para Intervalo e Energização ─
+  if (form.horaEnergizacao || form.fotoEnergizacao) {
+    doc.addPage()
+    page++
+    y = 14
+
+    y = sectionTitle(doc, 'Intervalo e Energização', y)
+
+    const tercW = (COL - 8) / 3
+    const boxes = [
+      { label: 'Hora de Energização', value: fmtHora(form.horaEnergizacao) },
+      { label: 'Houve Intervalo?',     value: form.houveIntervalo ? 'Sim' : 'Não' },
+      { label: 'Duração do Intervalo', value: form.houveIntervalo ? duracaoLabel(form.duracaoIntervalo) : '—' },
+    ]
+
+    for (const [i, box] of boxes.entries()) {
+      const bx = MX + i * (tercW + 4)
+      infoBox(doc, bx, y, tercW, 18)
+      fieldLabel(doc, box.label, bx + 3, y + 5)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(i === 0 ? CGB.dark[0] : CGB.ink[0], i === 0 ? CGB.dark[1] : CGB.ink[1], i === 0 ? CGB.dark[2] : CGB.ink[2])
+      doc.text(box.value, bx + 3, y + 14)
+    }
+    y += 23
+
+    // Foto da Energização do Sistema — sozinha na página, aproveita o espaço vertical
+    if (form.fotoEnergizacao) {
+      const energFotoH = Math.min(180, SAFE_BOTTOM - y - 12)
+
+      doc.setFillColor(...CGB.faint)
+      doc.roundedRect(MX, y, COL, energFotoH + 8, 2, 2, 'F')
+      doc.setDrawColor(...CGB.border)
+      doc.setLineWidth(0.2)
+      doc.roundedRect(MX, y, COL, energFotoH + 8, 2, 2, 'S')
+
+      await addPdfImage(doc, form.fotoEnergizacao, MX + 1, y + 1, COL - 2, energFotoH - 1)
+
+      doc.setFillColor(...CGB.dark)
+      doc.rect(MX + 1, y + energFotoH, COL - 2, 7, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(6.5)
+      doc.setTextColor(...CGB.white)
+      doc.text('Foto da Energização do Sistema', MX + COL / 2, y + energFotoH + 4.5, { align: 'center' })
+
+      y += energFotoH + 12
+    }
+  }
+
   // ── QUEBRA DE PÁGINA: página 3 começa com Evidências ─────────
   doc.addPage()
   page++
@@ -541,10 +568,22 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
     checkPage(30)
     y = sectionTitle(doc, 'Evidências', y)
 
+    const evFotoW = (COL - 16) / 2
+    // Sempre 2 cards (4 fotos) por página — aproveita o espaço vertical com fotos maiores
+    const evFotoH = 90
+    let cardsNaPagina = 0
+
     for (const [idx, ev] of form.evidencias.entries()) {
       if (!ev.descricao && !ev.descricao2 && !ev.foto1 && !ev.foto2) continue
-      const evH = 8 + (ev.foto1 || ev.foto2 ? fotoH + 14 : 0)
-      checkPage(evH + 8)
+
+      if (cardsNaPagina === 2) {
+        doc.addPage()
+        page++
+        y = 14
+        cardsNaPagina = 0
+      }
+
+      const evH = 8 + (ev.foto1 || ev.foto2 ? evFotoH + 14 : 0)
 
       // Card da evidência
       doc.setFillColor(...CGB.white)
@@ -560,10 +599,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
       doc.setFontSize(7.5)
       doc.setTextColor(...CGB.dark)
       doc.text(`EVIDÊNCIA ${idx + 1}`, MX + 7, y + 5.5)
-      let iy = y + 10
-
-      const evFotoW = (COL - 16) / 2
-      const evFotoH = evFotoW * 0.72
+      const iy = y + 10
 
       const evFotos = [
         { src: ev.foto1, lbl: ev.descricao || 'FOTO 1' },
@@ -585,9 +621,8 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
         doc.text(lbl, fx + evFotoW / 2, iy + evFotoH + 4, { align: 'center' })
       }
 
-      if (evFotos.length > 0) iy += evFotoH + 10
-
       y += evH + 5
+      cardsNaPagina++
     }
   }
 

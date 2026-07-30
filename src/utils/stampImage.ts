@@ -291,7 +291,9 @@ function gpsOptionsHigh(): GeoOptions {
   const base: GeoOptions = {
     enableHighAccuracy: true,
     maximumAge: 0,
-    timeout: isNativeMobile() ? 5_000 : 4_000,
+    // Web (sem chip de GPS dedicado) depende de triangulação por Wi-Fi/rede via o SO —
+    // bem mais lenta que GPS de celular; 4s expirava a tentativa cedo demais.
+    timeout: isNativeMobile() ? 5_000 : 10_000,
   }
   if (isNativeMobile()) {
     base.minimumUpdateInterval = 1_000
@@ -305,8 +307,8 @@ function gpsOptionsHigh(): GeoOptions {
 const MAX_ACCEPTABLE_ACCURACY_M = 30
 /** Precisão considerada boa na interface. */
 const GOOD_ACCURACY_M = 15
-/** Tempo máximo buscando GPS antes de marcar indisponível. */
-const GPS_SEARCH_TIMEOUT_MS = 6_000
+/** Tempo máximo buscando GPS antes de marcar indisponível — generoso pro desktop/Wi-Fi. */
+const GPS_SEARCH_TIMEOUT_MS = 15_000
 /** Precisão ideal — retorno imediato na captura. */
 const IDEAL_ACCURACY_M = 15
 /** Refino rápido no instante da captura (segundos). */
@@ -597,9 +599,9 @@ export function startCoordsWatcher(
       notify()
       return
     }
-    if (!best && watchStatus === 'searching') {
-      markUnavailable()
-    }
+    // Timeout/indisponível pontual (code 2/3): não desiste na primeira falha —
+    // watchPosition continua tentando sozinho. Só o searchTimer (GPS_SEARCH_TIMEOUT_MS)
+    // decide "indisponível" de verdade, dando tempo à triangulação por Wi-Fi no desktop.
   }
 
   const pruneSamples = () => {

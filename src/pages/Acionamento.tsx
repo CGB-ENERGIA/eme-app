@@ -1,11 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Loader2, Sun, Moon, Save, CheckCircle, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Loader2, Sun, Moon, Save, CheckCircle, Trash2, Plus, FileDown } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
-import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento } from '../store/db'
+import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento, buscarFormulario, salvarFormulario, listarFormularios } from '../store/db'
 import { type AcionamentoData, emptyAcionamento } from '../types/acionamento'
+import type { FormularioEME } from '../types/eme'
 import PhotoCapture from '../components/ui/PhotoCapture'
+import { logError } from '../utils/telemetry'
+
+/** Aplica os campos preenchidos aqui no formulário EME vinculado (fica visível no PDF completo). */
+function aplicarAcionamentoNoForm(form: FormularioEME, d: AcionamentoData): FormularioEME {
+  return {
+    ...form,
+    acionamentoResponsavelEqtl: d.responsavelEqtl,
+    acionamentoVia: d.via,
+    acionamentoDataHora: d.dataHoraAcionamento,
+    acionamentoChegadaBase: d.dataHoraChegadaBase,
+    acionamentoQuebraProgramacao: d.quebraProgramacao,
+    acionamentoPep: d.pep,
+    fotoAcionamento: d.fotoAcionamento,
+  }
+}
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -46,6 +62,10 @@ export default function Acionamento() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [savedList, setSavedList] = useState<{ name: string; savedAt: string }[]>([])
   const [editando, setEditando]   = useState(false)
+  // Formulário EME vinculado (via card da Lista) — permite gravar o acionamento
+  // direto nos campos do formulário e gerar o PDF completo com tudo já preenchido.
+  const [form, setForm]           = useState<FormularioEME | null>(null)
+  const [gerandoPDF, setGerandoPDF] = useState(false)
 
   const recarregarLista = useCallback(async () => {
     const lista = await listarAcionamentos()
@@ -54,14 +74,21 @@ export default function Acionamento() {
 
   useEffect(() => { recarregarLista() }, [recarregarLista])
 
-  // Abre direto em modo edição quando navegado a partir de um formulário da lista
-  const initDone = useRef(false)
+  // Abre direto em modo edição quando navegado a partir de um formulário da lista.
+  // Rastreia o último incidente carregado (não só "já rodou uma vez") para recarregar
+  // corretamente se o usuário voltar e abrir o Acionamento de OUTRO formulário na mesma sessão.
+  const lastIncidenteRef = useRef<string | null>(null)
   useEffect(() => {
-    if (initDone.current) return
-    const state = location.state as { incidente?: string } | null
-    if (!state?.incidente) return
-    initDone.current = true
+    const state = location.state as { incidente?: string; formId?: string } | null
+    if (!state?.incidente || lastIncidenteRef.current === state.incidente) return
+    lastIncidenteRef.current = state.incidente
     const nome = `EME_${state.incidente}`
+
+    setForm(null)
+    if (state.formId) {
+      buscarFormulario(state.formId).then((f) => { if (f) setForm(f) })
+    }
+
     buscarAcionamento(nome).then(async (existing) => {
       if (existing) {
         setData(existing.data)
@@ -86,11 +113,16 @@ export default function Acionamento() {
   }, [recarregarLista])
 
   const set = (partial: Partial<AcionamentoData>) => {
-    setData((prev) => {
-      const updated = { ...prev, ...partial }
-      if (pdfName) salvar(pdfName, updated)
-      return updated
-    })
+    const updated = { ...data, ...partial }
+    setData(updated)
+    if (pdfName) salvar(pdfName, updated)
+
+    // Grava também no formulário EME vinculado — fica no PDF completo e sincroniza com o banco.
+    if (form) {
+      const updatedForm = aplicarAcionamentoNoForm(form, updated)
+      setForm(updatedForm)
+      void salvarFormulario(updatedForm)
+    }
   }
 
   const novoAcionamento = useCallback(async () => {
@@ -100,15 +132,33 @@ export default function Acionamento() {
     const nome = `ACIONAMENTO_${d}_${h}`
     setData(emptyAcionamento)
     setPdfName(nome)
+    setForm(null)
+    lastIncidenteRef.current = null
     setEditando(true)
     await salvarAcionamento({ name: nome, data: emptyAcionamento, pdfBytes: new Uint8Array(), savedAt: now.toISOString() })
     await recarregarLista()
   }, [recarregarLista])
 
+  const gerarPDFCompleto = async () => {
+    if (!form || gerandoPDF) return
+    setGerandoPDF(true)
+    try {
+      const atualizado = aplicarAcionamentoNoForm(form, data)
+      const { exportarPDF } = await import('../utils/exportPDF')
+      await exportarPDF(atualizado)
+    } catch (error) {
+      logError(error, { scope: 'acionamento', action: 'exportar-pdf-completo', formId: form.id })
+    } finally {
+      setGerandoPDF(false)
+    }
+  }
+
   const fecharEdicao = () => {
     setEditando(false)
     setPdfName('')
     setData(emptyAcionamento)
+    setForm(null)
+    lastIncidenteRef.current = null
   }
 
   return (
@@ -198,6 +248,18 @@ export default function Acionamento() {
                             if (!record) return
                             setData(record.data)
                             setPdfName(record.name)
+                            lastIncidenteRef.current = null
+
+                            // Vincula ao formulário EME correspondente (se houver) — habilita o PDF completo
+                            const inc = incFromName(record.name)
+                            if (inc) {
+                              const todos = await listarFormularios()
+                              const match = todos.find((f) => f.incidente === inc)
+                              setForm(match ?? null)
+                            } else {
+                              setForm(null)
+                            }
+
                             setEditando(true)
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition"
@@ -337,6 +399,18 @@ export default function Acionamento() {
             >
               <Save size={18} /> Salvar Acionamento
             </button>
+
+            {form && (
+              <button
+                onClick={gerarPDFCompleto}
+                disabled={gerandoPDF}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold shadow-lg transition-all active:scale-95 disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.28)' }}
+              >
+                {gerandoPDF ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
+                {gerandoPDF ? 'Gerando PDF completo…' : 'Gerar PDF Completo'}
+              </button>
+            )}
           </div>
         )}
       </div>
