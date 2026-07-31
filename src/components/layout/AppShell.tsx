@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FileText, Zap, Sun, Moon, ClipboardList, WifiOff, Wifi, RefreshCw, CloudUpload } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -136,6 +136,25 @@ export default function AppShell({ page, children }: Props) {
   const showPendingBanner = pendentes > 0 && !showBanner && showHeader
   const navItems = isCampo ? NAV.filter((item) => item.page !== 'solicitacoes') : NAV
 
+  // Easter egg: 3 cliques seguidos na logo revelam o crédito de autoria.
+  const [showCredit, setShowCredit] = useState(false)
+  const cliquesRef = useRef(0)
+  const cliqueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleLogoClick = () => {
+    cliquesRef.current += 1
+    if (cliqueTimerRef.current) clearTimeout(cliqueTimerRef.current)
+
+    if (cliquesRef.current >= 3) {
+      cliquesRef.current = 0
+      setShowCredit(true)
+      window.setTimeout(() => setShowCredit(false), 4000)
+      return
+    }
+
+    cliqueTimerRef.current = setTimeout(() => { cliquesRef.current = 0 }, 600)
+  }
+
   return (
     <div className="min-h-svh w-full bg-[#0d0f16] flex flex-col">
       {/* Top navbar — hidden on the form-filling page (has its own header) */}
@@ -144,7 +163,10 @@ export default function AppShell({ page, children }: Props) {
         style={{ background: '#0f0b0e', borderBottom: '1px solid rgba(192,1,74,0.18)' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div
+          className="relative flex items-center gap-2.5 flex-shrink-0 cursor-pointer select-none"
+          onClick={handleLogoClick}
+        >
           <div className="rounded-xl p-1.5" style={{ background: 'rgba(192,1,74,0.15)', border: '1px solid rgba(192,1,74,0.25)' }}>
             <img src="/logo-cgb.png" alt="CGB" style={{ width: 28, height: 28, objectFit: 'contain' }} />
           </div>
@@ -152,6 +174,17 @@ export default function AppShell({ page, children }: Props) {
             <p className="font-black text-sm leading-none tracking-tight" style={{ color: '#f0f0f8' }}>CGB</p>
             <p className="text-[9px] font-semibold tracking-widest uppercase mt-0.5" style={{ color: 'rgba(192,1,74,0.8)' }}>Engenharia</p>
           </div>
+
+          {showCredit && (
+            <div
+              className="absolute top-full left-0 mt-2 z-50 whitespace-nowrap rounded-xl px-3 py-1.5 shadow-lg"
+              style={{ background: '#141820', border: '1px solid rgba(192,1,74,0.3)', animation: 'slideUp 0.25s ease-out' }}
+            >
+              <span className="text-light-sweep font-black text-xs tracking-wide">
+                Desenvolvido por Italo Fontes
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Divider */}
