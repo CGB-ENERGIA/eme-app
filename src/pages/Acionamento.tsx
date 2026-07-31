@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Loader2, Sun, Moon, Save, CheckCircle, Trash2, Plus, FileDown } from 'lucide-react'
+import { ArrowLeft, Loader2, Sun, Moon, Save, CheckCircle, Trash2, Plus, FileDown, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import AppShell from '../components/layout/AppShell'
-import { salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento, buscarFormulario, salvarFormulario, listarFormularios } from '../store/db'
+import {
+  salvarAcionamento, buscarAcionamento, listarAcionamentos, excluirAcionamento,
+  buscarFormulario, salvarFormulario, listarFormularios,
+  formularioSyncPendente, sincronizarFormularioAgora, EME_PENDING_EVENT,
+} from '../store/db'
 import { type AcionamentoData, emptyAcionamento } from '../types/acionamento'
 import type { FormularioEME } from '../types/eme'
 import PhotoCapture from '../components/ui/PhotoCapture'
@@ -66,6 +70,20 @@ export default function Acionamento() {
   // direto nos campos do formulário e gerar o PDF completo com tudo já preenchido.
   const [form, setForm]           = useState<FormularioEME | null>(null)
   const [gerandoPDF, setGerandoPDF] = useState(false)
+  const [syncPendente, setSyncPendente] = useState(false)
+  const [sincronizandoAgora, setSincronizandoAgora] = useState(false)
+
+  // Reflete se as alterações deste acionamento (via formulário vinculado) já
+  // subiram ao banco — o registro de acionamento em si só existe localmente;
+  // o que garante persistência no Supabase é o formulário EME vinculado.
+  useEffect(() => {
+    if (!form) { setSyncPendente(false); return }
+    const formId = form.id
+    const checar = () => { formularioSyncPendente(formId).then(setSyncPendente) }
+    checar()
+    window.addEventListener(EME_PENDING_EVENT, checar)
+    return () => window.removeEventListener(EME_PENDING_EVENT, checar)
+  }, [form?.id])
 
   const recarregarLista = useCallback(async () => {
     const lista = await listarAcionamentos()
@@ -111,6 +129,23 @@ export default function Acionamento() {
     setSaveState('saved')
     setTimeout(() => setSaveState('idle'), 2000)
   }, [recarregarLista])
+
+  /** Usado pelos botões "Salvar" — além de salvar local, força o envio imediato
+   *  ao banco (sem esperar o debounce de 2s), para o usuário ter certeza de que
+   *  os dados do acionamento (gravados no formulário vinculado) já subiram. */
+  const salvarEForcarSync = async () => {
+    await salvar(pdfName, data)
+    if (!form) return
+    setSincronizandoAgora(true)
+    try {
+      const atualizado = await sincronizarFormularioAgora(aplicarAcionamentoNoForm(form, data))
+      setForm(atualizado)
+    } catch (error) {
+      logError(error, { scope: 'acionamento', action: 'sincronizar-forcado', formId: form.id })
+    } finally {
+      setSincronizandoAgora(false)
+    }
+  }
 
   const set = (partial: Partial<AcionamentoData>) => {
     const updated = { ...data, ...partial }
@@ -188,7 +223,7 @@ export default function Acionamento() {
 
           <div className="flex items-center gap-2">
             {saveState === 'saving' && <Loader2 size={14} className="animate-spin opacity-70" />}
-            {saveState === 'saved' && (
+            {saveState === 'saved' && !sincronizandoAgora && !syncPendente && (
               <span className="flex items-center gap-1 text-xs font-semibold text-green-300">
                 <CheckCircle size={13} /> Salvo
               </span>
@@ -199,15 +234,37 @@ export default function Acionamento() {
             </button>
             {editando && (
               <button
-                onClick={() => salvar(pdfName, data)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
+                onClick={salvarEForcarSync}
+                disabled={sincronizandoAgora}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold disabled:opacity-70"
                 style={{ background: 'rgba(255,255,255,0.12)' }}
               >
-                <Save size={14} /> Salvar
+                {sincronizandoAgora ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {sincronizandoAgora ? 'Enviando…' : 'Salvar'}
               </button>
             )}
           </div>
         </div>
+
+        {editando && form && (syncPendente || sincronizandoAgora) && (
+          <div className="px-4 lg:px-8 pb-2.5 max-w-7xl mx-auto w-full">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ background: 'rgba(0,0,0,0.18)', color: '#fed7aa' }}>
+              <RefreshCw size={11} className={sincronizandoAgora ? 'animate-spin' : ''} />
+              {sincronizandoAgora ? 'Sincronizando com o banco…' : 'Não sincronizado — toque em Salvar para enviar'}
+            </span>
+          </div>
+        )}
+
+        {editando && !form && (
+          <div className="px-4 lg:px-8 pb-2.5 max-w-7xl mx-auto w-full">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ background: 'rgba(0,0,0,0.18)', color: '#fed7aa' }}>
+              <AlertTriangle size={11} />
+              Sem formulário vinculado — dados salvos só neste aparelho
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="max-w-2xl mx-auto px-4 lg:px-8 pt-5 pb-10 w-full flex-1">
@@ -428,11 +485,13 @@ export default function Acionamento() {
             </div>
 
             <button
-              onClick={() => salvar(pdfName, data)}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold shadow-lg transition-all active:scale-95"
+              onClick={salvarEForcarSync}
+              disabled={sincronizandoAgora}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold shadow-lg transition-all active:scale-95 disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg, #7B0029, #C0014A)', boxShadow: '0 8px 24px rgba(160,0,60,0.3)' }}
             >
-              <Save size={18} /> Salvar Acionamento
+              {sincronizandoAgora ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              {sincronizandoAgora ? 'Enviando ao banco…' : 'Salvar Acionamento'}
             </button>
 
             {form && (
