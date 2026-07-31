@@ -25,6 +25,29 @@ export default function Lista() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [sincronizandoId, setSincronizandoId] = useState<string | null>(null)
 
+  // Tela de progresso durante a sincronização (individual ou geral)
+  const [syncOverlayAtivo, setSyncOverlayAtivo] = useState(false)
+  const [syncOverlayModo, setSyncOverlayModo] = useState<'individual' | 'geral'>('geral')
+  const [syncOverlayIncidente, setSyncOverlayIncidente] = useState<string | undefined>(undefined)
+  const [syncOverlayProgresso, setSyncOverlayProgresso] = useState<{ enviados: number; total: number } | null>(null)
+  const [syncOverlaySegundos, setSyncOverlaySegundos] = useState(0)
+
+  useEffect(() => {
+    if (!syncOverlayAtivo) return
+    const inicio = Date.now()
+    setSyncOverlaySegundos(0)
+    const id = window.setInterval(() => {
+      setSyncOverlaySegundos(Math.floor((Date.now() - inicio) / 1000))
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [syncOverlayAtivo])
+
+  const formatarTempo = (s: number) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return m > 0 ? `${m}:${String(sec).padStart(2, '0')}` : `${sec}s`
+  }
+
   const urlDeFormulario = (id: string) => `${window.location.origin}/formulario/${id}?step=1&campo=1`
 
   const copiarLink = async (id: string) => {
@@ -59,8 +82,11 @@ export default function Lista() {
     if (sincronizando) return
     setSincronizando(true)
     setSyncMsg(null)
+    setSyncOverlayModo('geral')
+    setSyncOverlayProgresso(null)
+    setSyncOverlayAtivo(true)
     try {
-      const result = await sincronizarTudo()
+      const result = await sincronizarTudo((enviados, total) => setSyncOverlayProgresso({ enviados, total }))
       const lista = await listarFormularios()
       setFormularios(lista)
       setSyncMsg(
@@ -74,6 +100,7 @@ export default function Lista() {
       setSyncMsg('Falha na sincronização. Tente novamente.')
     } finally {
       setSincronizando(false)
+      setSyncOverlayAtivo(false)
       window.setTimeout(() => setSyncMsg(null), 4000)
     }
   }
@@ -82,6 +109,9 @@ export default function Lista() {
     e.stopPropagation()
     if (sincronizandoId) return
     setSincronizandoId(form.id)
+    setSyncOverlayModo('individual')
+    setSyncOverlayIncidente(form.incidente)
+    setSyncOverlayAtivo(true)
     try {
       const atualizado = await sincronizarFormularioAgora(form)
       setFormularios((prev) => prev.map((f) => (f.id === atualizado.id ? atualizado : f)))
@@ -90,6 +120,7 @@ export default function Lista() {
       window.alert('Não foi possível sincronizar este formulário agora. Verifique a conexão e tente novamente.')
     } finally {
       setSincronizandoId(null)
+      setSyncOverlayAtivo(false)
     }
   }
 
@@ -804,6 +835,38 @@ export default function Lista() {
           </div>
         )
       })()}
+
+      {/* ── OVERLAY DE SINCRONIZAÇÃO ── */}
+      {syncOverlayAtivo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div
+            className="rounded-3xl w-full max-w-xs p-7 text-center shadow-2xl"
+            style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.09)' }}
+          >
+            <div className="relative w-16 h-16 mx-auto mb-5">
+              <div
+                className="absolute inset-0 rounded-full border-4 animate-spin"
+                style={{ borderColor: 'rgba(192,1,74,0.25)', borderTopColor: '#C0014A' }}
+              />
+              <RefreshCw size={22} className="absolute inset-0 m-auto" style={{ color: '#C0014A' }} />
+            </div>
+            <h3 className="font-black text-lg" style={{ color: '#f0f0f8' }}>Sincronizando…</h3>
+            <p className="text-sm mt-1.5 break-words" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {syncOverlayModo === 'individual'
+                ? `Enviando formulário ${syncOverlayIncidente || '—'}`
+                : syncOverlayProgresso
+                  ? `${syncOverlayProgresso.enviados} de ${syncOverlayProgresso.total} formulário${syncOverlayProgresso.total !== 1 ? 's' : ''}`
+                  : 'Preparando envio...'}
+            </p>
+            <p className="text-3xl font-black tabular-nums mt-4" style={{ color: '#C0014A' }}>
+              {formatarTempo(syncOverlaySegundos)}
+            </p>
+            <p className="text-[11px] mt-2 uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Não feche o aplicativo
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL EXCLUIR ── */}
       {excluindo && (

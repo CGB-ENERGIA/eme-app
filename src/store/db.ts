@@ -271,8 +271,9 @@ type SyncResult = { ok: boolean; total: number; enviados: number; erro?: string 
 /** Evita sync paralelo (botão Sync + auto-sync ao reconectar). */
 let syncEmAndamento: Promise<SyncResult> | null = null
 
-/** Envia locais → Supabase (com fotos) e depois puxa atualizações remotas. */
-export async function sincronizarTudo(): Promise<SyncResult> {
+/** Envia locais → Supabase (com fotos) e depois puxa atualizações remotas.
+ *  onProgress(enviados, total) — permite à UI mostrar uma barra/contador de progresso. */
+export async function sincronizarTudo(onProgress?: (enviados: number, total: number) => void): Promise<SyncResult> {
   if (syncEmAndamento) return syncEmAndamento
 
   syncEmAndamento = (async (): Promise<SyncResult> => {
@@ -294,6 +295,7 @@ export async function sincronizarTudo(): Promise<SyncResult> {
         ultimoErro = err instanceof Error ? err.message : 'Erro ao sincronizar'
         logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
       }
+      onProgress?.(enviados, locais.length)
     }
     notifyPendingChanged()
 
