@@ -8,6 +8,7 @@ import { salvarFormulario } from '../store/db'
 import AppShell from '../components/layout/AppShell'
 import { useAppRole } from '../contexts/RoleContext'
 import { logError } from '../utils/telemetry'
+import { isMobileDevice } from '../utils/platform'
 
 export default function Lista() {
   const navigate = useNavigate()
@@ -160,7 +161,7 @@ export default function Lista() {
       const { exportarPDF } = await import('../utils/exportPDF')
       const result = await exportarPDF(form, 'blob') as { blob: Blob; nome: string }
       const file = new File([result.blob], result.nome, { type: 'application/pdf' })
-      if (navigator.canShare?.({ files: [file] })) {
+      if (isMobileDevice() && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: `EME ${form.incidente}` })
       } else {
         const url = URL.createObjectURL(result.blob)

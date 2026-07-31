@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import type { FormularioEME } from '../types/eme'
+import { isMobileDevice } from './platform'
 
 // ── Carrega o PNG do favicon como base64 ──────────────────────
 let _logoCache: string | null = null
@@ -659,8 +660,10 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
   const file = new File([blob], nome, { type: 'application/pdf' })
 
   // No mobile, usa Web Share API para abrir a caixa de compartilhamento nativa
-  // (WhatsApp, Email, Salvar em Arquivos, etc.). Fallback: download tradicional.
-  if (navigator.canShare?.({ files: [file] })) {
+  // (WhatsApp, Email, Salvar em Arquivos, etc.). No desktop, o Chromium também
+  // "suporta" a API mas abre uma janela do SO que às vezes não conclui o
+  // download — por isso só usamos share em celular/tablet.
+  if (isMobileDevice() && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: nome })
       return
