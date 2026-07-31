@@ -247,8 +247,11 @@ export function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-/** JPEG de alta qualidade — carimbo e PDF precisam de ótima visualização. */
-const PHOTO_JPEG_QUALITY = 0.95
+/** JPEG de alta qualidade — carimbo e PDF precisam de ótima visualização.
+ *  0.95 gerava arquivos 2-3x maiores sem ganho perceptível impresso/no PDF,
+ *  e isso é o principal responsável por syncs lentos em sinal fraco de campo.
+ *  0.85 mantém ótima legibilidade com payload bem menor. */
+const PHOTO_JPEG_QUALITY = 0.85
 
 /** Teto de resolução: fotos de câmeras modernas (12-50MP) viram base64 de vários MB,
  *  o que trava upload em campo com sinal fraco. 1920px no lado maior mantém boa

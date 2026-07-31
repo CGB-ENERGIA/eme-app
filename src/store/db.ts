@@ -283,10 +283,14 @@ export async function sincronizarTudo(onProgress?: (enviados: number, total: num
 
     const db = await getDB()
     const locais = (await db.getAll('formularios')).map(sanitizeFormulario)
+    // Só reenvia quem tem alteração pendente — evita reupload/upsert de formulários
+    // já sincronizados a cada toque em "Sincronizar" (fotos já enviadas são baratas
+    // de pular, mas o upsert de metadados no Supabase não precisa repetir à toa).
+    const pendentes = locais.filter((f) => f.syncPendente)
     let enviados = 0
     let ultimoErro: string | undefined
 
-    for (const form of locais) {
+    for (const form of pendentes) {
       try {
         const comUrls = await syncFormulario(form)
         await db.put('formularios', { ...comUrls, atualizadoEm: form.atualizadoEm, syncPendente: false })
@@ -295,14 +299,14 @@ export async function sincronizarTudo(onProgress?: (enviados: number, total: num
         ultimoErro = err instanceof Error ? err.message : 'Erro ao sincronizar'
         logError(err, { scope: 'supabase', action: 'sincronizar-tudo-push', id: form.id })
       }
-      onProgress?.(enviados, locais.length)
+      onProgress?.(enviados, pendentes.length)
     }
     notifyPendingChanged()
 
     const merged = await sincronizarDeSupabase()
     const total = merged.length > 0 ? merged.length : locais.length
 
-    if (enviados === 0 && locais.length > 0) {
+    if (enviados === 0 && pendentes.length > 0) {
       return {
         ok: false,
         total,
