@@ -69,15 +69,31 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
 
               {/* Intervalo */}
               <div className="rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-4 space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 rounded accent-[#C0014A]"
-                    checked={form.houveIntervalo}
-                    onChange={(e) => onChange({ houveIntervalo: e.target.checked, duracaoIntervalo: e.target.checked ? form.duracaoIntervalo : '' })}
-                  />
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Houve intervalo?</span>
-                </label>
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 block text-center">
+                  Atendimento foi iniciado depois das 14:00h?
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onChange({ houveIntervalo: false, duracaoIntervalo: '' })}
+                    className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
+                    style={!form.houveIntervalo
+                      ? { background: '#F0FFF4', borderColor: '#059669', color: '#059669' }
+                      : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}
+                  >
+                    Sim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange({ houveIntervalo: true, duracaoIntervalo: form.duracaoIntervalo || '01:00' })}
+                    className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
+                    style={form.houveIntervalo
+                      ? { background: '#FFF0F4', borderColor: '#C0014A', color: '#C0014A' }
+                      : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}
+                  >
+                    Não
+                  </button>
+                </div>
 
                 {form.houveIntervalo && (
                   <div className="flex flex-col gap-2">
@@ -117,16 +133,32 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
       <div id="secao-intervalo-energizacao">
           <SectionCard title="Intervalo e Energização" icon={<Clock size={16} />}>
 
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded accent-[#C0014A]"
-                  checked={form.houveIntervalo}
-                  onChange={(e) => onChange({ houveIntervalo: e.target.checked, duracaoIntervalo: e.target.checked ? form.duracaoIntervalo : '' })}
-                />
-                <span className="text-sm font-medium text-slate-700">Houve intervalo?</span>
-              </label>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Atendimento foi iniciado depois das 14:00h?
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onChange({ houveIntervalo: false, duracaoIntervalo: '' })}
+                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2"
+                  style={!form.houveIntervalo
+                    ? { background: '#F0FFF4', borderColor: '#059669', color: '#059669' }
+                    : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}
+                >
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ houveIntervalo: true, duracaoIntervalo: form.duracaoIntervalo || '01:00' })}
+                  className="flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2"
+                  style={form.houveIntervalo
+                    ? { background: '#FFF0F4', borderColor: '#C0014A', color: '#C0014A' }
+                    : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}
+                >
+                  Não
+                </button>
+              </div>
             </div>
 
             {form.houveIntervalo && (
