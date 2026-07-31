@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react'
-import { buscarFormulario, salvarFormulario, sincronizarFormularioAgora, formularioSyncPendente, EME_PENDING_EVENT } from '../store/db'
+import { buscarFormulario, salvarFormulario, formularioSyncPendente, EME_PENDING_EVENT } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import DadosIncidente from '../components/sections/DadosIncidente'
@@ -159,23 +159,9 @@ export default function Formulario() {
     setFinalizando(true)
     try {
       const atualizado = { ...form, status: 'finalizado' as const }
-
-      // Sync imediato com upload de fotos (não usa debounce — evita perder passo 2+)
-      let salvo: FormularioEME = atualizado
-      try {
-        salvo = await sincronizarFormularioAgora(atualizado)
-        setForm(salvo)
-      } catch (syncErr) {
-        // Mantém local mesmo se sync falhar; avisa e segue com PDF local
-        await salvarFormulario(atualizado)
-        setForm(atualizado)
-        logError(syncErr, { scope: 'formulario', action: 'sync-ao-finalizar' })
-        window.alert(
-          'Formulário salvo neste aparelho, mas as fotos ainda não subiram ao banco. ' +
-            'Com internet, toque em Sync na tela de Solicitações para enviar.',
-        )
-      }
-
+      // Salva localmente e dispara sync em background — não bloqueia a navegação.
+      // O indicador "Não sincronizado" na lista avisa o usuário enquanto o upload ocorre.
+      await salvarFormulario(atualizado)
       navigate('/formularios')
     } catch (error) {
       logError(error, { scope: 'formulario', action: 'finalizar' })

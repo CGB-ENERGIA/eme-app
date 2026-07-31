@@ -88,38 +88,32 @@ function fromRow(row: Row): FormularioEME {
 // ─── Upload das fotos locais (base64) para R2 ─────────────────
 
 async function uploadFotosParaR2(form: FormularioEME): Promise<FormularioEME> {
-  const fotosSimples: Record<string, string> = {}
-
   const campos = [
     'fotoAcionamento', 'fotoSaidaBase',
     'fotoChegadaServico', 'fotoEnergizacao', 'fotoChegadaBasePosAtendimento',
   ] as const
 
+  // Monta todas as fotos (simples + evidências) em um único mapa e sobe tudo em paralelo.
+  const todasFotos: Record<string, string> = {}
   for (const campo of campos) {
     const val = form[campo]
-    if (val) fotosSimples[campo] = val
+    if (val) todasFotos[campo] = val
+  }
+  for (const [i, ev] of form.evidencias.entries()) {
+    if (ev.foto1) todasFotos[`evidencia_${i}_foto1`] = ev.foto1
+    if (ev.foto2) todasFotos[`evidencia_${i}_foto2`] = ev.foto2
   }
 
-  const urlsSimples = await uploadFotosFormulario(form.id, fotosSimples)
-
-  const evidenciasComUrl = await Promise.all(
-    form.evidencias.map(async (ev, i) => {
-      const evFotos: Record<string, string> = {}
-      if (ev.foto1) evFotos[`evidencia_${i}_foto1`] = ev.foto1
-      if (ev.foto2) evFotos[`evidencia_${i}_foto2`] = ev.foto2
-      const urls = await uploadFotosFormulario(form.id, evFotos)
-      return {
-        ...ev,
-        foto1: urls[`evidencia_${i}_foto1`] ?? ev.foto1,
-        foto2: urls[`evidencia_${i}_foto2`] ?? ev.foto2,
-      }
-    })
-  )
+  const urls = await uploadFotosFormulario(form.id, todasFotos)
 
   return {
     ...form,
-    ...Object.fromEntries(campos.map((c) => [c, urlsSimples[c] ?? form[c]])),
-    evidencias: evidenciasComUrl,
+    ...Object.fromEntries(campos.map((c) => [c, urls[c] ?? form[c]])),
+    evidencias: form.evidencias.map((ev, i) => ({
+      ...ev,
+      foto1: urls[`evidencia_${i}_foto1`] ?? ev.foto1,
+      foto2: urls[`evidencia_${i}_foto2`] ?? ev.foto2,
+    })),
   }
 }
 
