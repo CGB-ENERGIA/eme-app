@@ -72,6 +72,10 @@ export async function executarAutoSync(reason: string) {
 
 /** Escuta reconexão e retorno ao app; retorna cleanup. */
 export function iniciarAutoSync(): () => void {
+  // Dispara também na montagem — cobre o caso de abrir o app do zero (processo novo),
+  // quando 'visibilitychange' não dispara por não haver uma transição de estado anterior.
+  agendarAutoSync('mount', 800)
+
   const onOnline = () => agendarAutoSync('online', 400)
 
   const onVisible = () => {

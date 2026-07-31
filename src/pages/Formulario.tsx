@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Save, FileDown, Sheet, CheckCircle, Loader2, ChevronLeft, Sun, Moon, Pencil } from 'lucide-react'
-import { buscarFormulario, salvarFormulario, formularioSyncPendente, EME_PENDING_EVENT } from '../store/db'
+import { buscarFormulario, salvarFormulario, sincronizarFormularioAgora, formularioSyncPendente, EME_PENDING_EVENT } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import DadosIncidente from '../components/sections/DadosIncidente'
@@ -159,9 +159,15 @@ export default function Formulario() {
     setFinalizando(true)
     try {
       const atualizado = { ...form, status: 'finalizado' as const }
-      // Salva localmente e dispara sync em background — não bloqueia a navegação.
-      // O indicador "Não sincronizado" na lista avisa o usuário enquanto o upload ocorre.
+      // Salva localmente (garante que nada se perde mesmo se o app fechar em seguida).
       await salvarFormulario(atualizado)
+      // Dispara o sync real imediatamente (sem esperar o debounce de 2s) — importante
+      // pois o usuário costuma fechar/travar o celular logo após finalizar, e um
+      // atraso artificial antes de começar o upload aumenta o risco de nunca sincronizar.
+      // Não aguardamos aqui: a navegação é instantânea e o upload segue em background.
+      sincronizarFormularioAgora(atualizado).catch((syncErr) => {
+        logError(syncErr, { scope: 'formulario', action: 'sync-imediato-ao-finalizar' })
+      })
       navigate('/formularios')
     } catch (error) {
       logError(error, { scope: 'formulario', action: 'finalizar' })
