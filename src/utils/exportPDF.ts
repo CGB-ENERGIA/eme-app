@@ -653,7 +653,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
     drawFooter(doc, p, totalPages)
   }
 
-  const nome = `EME_${form.incidente || form.id.slice(0, 8)}_${fmt(form.dataInicio).replace(/\//g, '-')}.pdf`
+  const nome = `INC - ${form.incidente || form.id.slice(0, 8)}.pdf`
   if (mode === 'blob') return { blob: doc.output('blob') as unknown as Blob, nome }
 
   const blob = doc.output('blob') as unknown as Blob
