@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Clock, CheckCircle } from 'lucide-react'
+import { Clock, CheckCircle, Lock } from 'lucide-react'
 import type { FormularioEME } from '../../types/eme'
 import SectionCard from '../ui/SectionCard'
 import TimeInput from '../ui/TimeInput'
@@ -29,6 +29,14 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
   useEffect(() => {
     if (!focusModal) setConfirmed(false)
   }, [focusModal])
+
+  // Regra: com intervalo, a duração é sempre 1h fixa — corrige registros
+  // antigos (salvos antes dessa regra) que possam ter outro valor.
+  useEffect(() => {
+    if (form.houveIntervalo && form.duracaoIntervalo !== '01:00') {
+      onChange({ duracaoIntervalo: '01:00' })
+    }
+  }, [form.houveIntervalo, form.duracaoIntervalo, onChange])
 
   const handleConfirm = () => {
     if (!form.horaEnergizacao) return
@@ -85,7 +93,7 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
                   </button>
                   <button
                     type="button"
-                    onClick={() => onChange({ houveIntervalo: true, duracaoIntervalo: form.duracaoIntervalo || '01:00' })}
+                    onClick={() => onChange({ houveIntervalo: true, duracaoIntervalo: '01:00' })}
                     className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
                     style={form.houveIntervalo
                       ? { background: '#FFF0F4', borderColor: '#C0014A', color: '#C0014A' }
@@ -100,15 +108,13 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
                     <span className="text-xs font-medium text-slate-500 uppercase tracking-wide text-center">
                       Duração do Intervalo
                     </span>
-                    <TimeInput
-                      value={form.duracaoIntervalo}
-                      onChange={(v) => onChange({ duracaoIntervalo: v })}
-                    />
-                    {form.duracaoIntervalo && duracaoLabel(form.duracaoIntervalo) && (
-                      <span className="text-sm font-semibold text-center" style={{ color: '#9B003C' }}>
-                        {duracaoLabel(form.duracaoIntervalo)}
-                      </span>
-                    )}
+                    <div className="flex items-center justify-center gap-2 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 px-4 py-3">
+                      <Lock size={14} className="text-slate-400" />
+                      <span className="text-2xl font-black text-slate-600 dark:text-slate-300 tabular-nums">01:00</span>
+                    </div>
+                    <span className="text-sm font-semibold text-center" style={{ color: '#9B003C' }}>
+                      {duracaoLabel('01:00')} — obrigatório por regra
+                    </span>
                   </div>
                 )}
               </div>
@@ -150,7 +156,7 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
                 </button>
                 <button
                   type="button"
-                  onClick={() => onChange({ houveIntervalo: true, duracaoIntervalo: form.duracaoIntervalo || '01:00' })}
+                  onClick={() => onChange({ houveIntervalo: true, duracaoIntervalo: '01:00' })}
                   className="flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2"
                   style={form.houveIntervalo
                     ? { background: '#FFF0F4', borderColor: '#C0014A', color: '#C0014A' }
@@ -164,15 +170,13 @@ export default function IntervaloEnergizacao({ form, onChange, showErrors, focus
             {form.houveIntervalo && (
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Duração do Intervalo</span>
-                <TimeInput
-                  value={form.duracaoIntervalo}
-                  onChange={(v) => onChange({ duracaoIntervalo: v })}
-                />
-                {form.duracaoIntervalo && duracaoLabel(form.duracaoIntervalo) && (
-                  <span className="text-sm font-semibold" style={{ color: '#9B003C' }}>
-                    {duracaoLabel(form.duracaoIntervalo)}
-                  </span>
-                )}
+                <div className="flex items-center gap-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 px-4 py-2.5">
+                  <Lock size={13} className="text-slate-400" />
+                  <span className="text-lg font-black text-slate-600 dark:text-slate-300 tabular-nums">01:00</span>
+                </div>
+                <span className="text-sm font-semibold" style={{ color: '#9B003C' }}>
+                  {duracaoLabel('01:00')} — obrigatório por regra
+                </span>
               </div>
             )}
 
