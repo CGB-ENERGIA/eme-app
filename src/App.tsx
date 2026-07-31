@@ -29,7 +29,7 @@ export default function App() {
           <Route path="/solicitacoes" element={<SolicitanteOnly><Solicitacoes /></SolicitanteOnly>} />
           <Route path="/formulario/:id" element={<Formulario />} />
 
-          <Route path="/acionamento" element={<DesktopOnly><Acionamento /></DesktopOnly>} />
+          <Route path="/acionamento" element={<Acionamento />} />
         </Routes>
         <InstallPrompt />
       </BrowserRouter>
