@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Zap, Search, X, Share2, Copy, Check, Link, Pencil, RefreshCw } from 'lucide-react'
-import { listarFormularios, excluirFormulario, sincronizarDeSupabase, sincronizarTudo } from '../store/db'
+import { listarFormularios, excluirFormulario, sincronizarDeSupabase, sincronizarTudo, sincronizarFormularioAgora } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
 import { salvarFormulario } from '../store/db'
@@ -23,6 +23,7 @@ export default function Lista() {
   const [copiadoLink, setCopiadoLink] = useState(false)
   const [sincronizando, setSincronizando] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [sincronizandoId, setSincronizandoId] = useState<string | null>(null)
 
   const urlDeFormulario = (id: string) => `${window.location.origin}/formulario/${id}?step=1&campo=1`
 
@@ -74,6 +75,21 @@ export default function Lista() {
     } finally {
       setSincronizando(false)
       window.setTimeout(() => setSyncMsg(null), 4000)
+    }
+  }
+
+  const sincronizarIndividual = async (e: React.MouseEvent, form: FormularioEME) => {
+    e.stopPropagation()
+    if (sincronizandoId) return
+    setSincronizandoId(form.id)
+    try {
+      const atualizado = await sincronizarFormularioAgora(form)
+      setFormularios((prev) => prev.map((f) => (f.id === atualizado.id ? atualizado : f)))
+    } catch (error) {
+      logError(error, { scope: 'lista', action: 'sincronizar-individual', formId: form.id })
+      window.alert('Não foi possível sincronizar este formulário agora. Verifique a conexão e tente novamente.')
+    } finally {
+      setSincronizandoId(null)
     }
   }
 
@@ -169,6 +185,9 @@ export default function Lista() {
       f.municipio.toLowerCase().includes(termo) ||
       f.base.toLowerCase().includes(termo)
     ))
+
+  const pendentesFiltrados = formulariosFiltrados.filter(f => f.syncPendente)
+  const sincronizadosFiltrados = formulariosFiltrados.filter(f => !f.syncPendente)
 
   return (
     <AppShell page="lista">
@@ -318,198 +337,370 @@ export default function Lista() {
           </p>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mt-3 min-w-0">
-          {carregando && (
-            <div className="text-center py-16 sm:col-span-2 lg:col-span-3 xl:col-span-4" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              <div className="animate-spin w-8 h-8 border-2 rounded-full mx-auto mb-3"
-                style={{ borderColor: 'rgba(192,1,74,0.3)', borderTopColor: '#C0014A' }} />
-              <p className="text-sm">Carregando registros...</p>
-            </div>
-          )}
+        {carregando && (
+          <div className="text-center py-16" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            <div className="animate-spin w-8 h-8 border-2 rounded-full mx-auto mb-3"
+              style={{ borderColor: 'rgba(192,1,74,0.3)', borderTopColor: '#C0014A' }} />
+            <p className="text-sm">Carregando registros...</p>
+          </div>
+        )}
 
-          {!carregando && formularios.length === 0 && (
-            <div className="text-center py-16 sm:col-span-2 lg:col-span-3 xl:col-span-4">
-              <div className="rounded-3xl p-6 sm:p-8 mx-auto max-w-xs" style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
-                  style={{ background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.2)' }}>
-                  <FileText size={28} style={{ color: '#C0014A' }} />
-                </div>
-                <p className="font-bold text-base" style={{ color: 'rgba(255,255,255,0.8)' }}>Nenhum registro ainda</p>
-                <p className="text-sm mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  {isSolicitante
-                    ? 'Toque em Solicitações para abrir um atendimento, ou aguarde o link da equipe.'
-                    : 'Aguarde o link da equipe para preencher um atendimento.'}
-                </p>
+        {!carregando && formularios.length === 0 && (
+          <div className="text-center py-16">
+            <div className="rounded-3xl p-6 sm:p-8 mx-auto max-w-xs" style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
+                style={{ background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.2)' }}>
+                <FileText size={28} style={{ color: '#C0014A' }} />
               </div>
+              <p className="font-bold text-base" style={{ color: 'rgba(255,255,255,0.8)' }}>Nenhum registro ainda</p>
+              <p className="text-sm mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                {isSolicitante
+                  ? 'Toque em Solicitações para abrir um atendimento, ou aguarde o link da equipe.'
+                  : 'Aguarde o link da equipe para preencher um atendimento.'}
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {!carregando && formularios.length > 0 && formulariosFiltrados.length === 0 && (
-            <div className="text-center py-12 sm:col-span-2 lg:col-span-3 xl:col-span-4">
-              <div className="rounded-3xl p-6 sm:p-8 mx-auto max-w-xs" style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
-                  style={{ background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.2)' }}>
-                  <Search size={28} style={{ color: '#C0014A' }} />
-                </div>
-                <p className="font-bold text-base" style={{ color: 'rgba(255,255,255,0.8)' }}>Nenhum resultado</p>
-                <p className="text-sm mt-1 leading-relaxed break-words" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Nenhum formulário encontrado para &quot;{busca}&quot;.
-                </p>
+        {!carregando && formularios.length > 0 && formulariosFiltrados.length === 0 && (
+          <div className="text-center py-12">
+            <div className="rounded-3xl p-6 sm:p-8 mx-auto max-w-xs" style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="rounded-2xl w-16 h-16 flex items-center justify-center mx-auto mb-4"
+                style={{ background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.2)' }}>
+                <Search size={28} style={{ color: '#C0014A' }} />
               </div>
+              <p className="font-bold text-base" style={{ color: 'rgba(255,255,255,0.8)' }}>Nenhum resultado</p>
+              <p className="text-sm mt-1 leading-relaxed break-words" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Nenhum formulário encontrado para &quot;{busca}&quot;.
+              </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {formulariosFiltrados.map((f) => (
-            <div
-              key={f.id}
-              className="group rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl"
-              style={{
-                background: '#141820',
-                border: '1px solid rgba(255,255,255,0.07)',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
-              }}
-            >
-              {/* Status accent line */}
-              <div className="h-px w-full flex-shrink-0" style={{
-                background: f.status === 'finalizado'
-                  ? 'linear-gradient(90deg,#059669,#10b981)'
-                  : 'linear-gradient(90deg,#d97706,#fbbf24)'
-              }} />
-
-              {/* Clickable card body */}
-              <button
-                onClick={() => navigate(`/formulario/${f.id}`)}
-                className="flex-1 text-left px-4 pt-4 pb-3.5 transition-colors active:bg-white/5 lg:hover:bg-white/[0.03]"
-              >
-                {/* Status badge + chevron */}
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                    <span
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
-                      style={f.status === 'finalizado'
-                        ? { color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }
-                        : { color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
+        {!carregando && formulariosFiltrados.length > 0 && (
+          <div className="space-y-7 mt-3">
+            {pendentesFiltrados.length > 0 && (
+              <div>
+                <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest mb-3 px-1" style={{ color: '#fb923c' }}>
+                  <RefreshCw size={12} />
+                  Aguardando sincronizar · {pendentesFiltrados.length}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 min-w-0">
+                  {pendentesFiltrados.map((f) => (
+                    <div
+                      key={f.id}
+                      className="group rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl"
+                      style={{
+                        background: '#141820',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+                      }}
                     >
-                      {f.status === 'finalizado' ? <CheckCircle size={9} /> : <Clock size={9} />}
-                      {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
-                    </span>
-                    {f.syncPendente && (
-                      <span
-                        className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
-                        style={{ color: '#fb923c', background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.25)' }}
-                        title="Alterações neste aparelho ainda não subiram ao banco"
+                      {/* Status accent line */}
+                      <div className="h-px w-full flex-shrink-0" style={{
+                        background: f.status === 'finalizado'
+                          ? 'linear-gradient(90deg,#059669,#10b981)'
+                          : 'linear-gradient(90deg,#d97706,#fbbf24)'
+                      }} />
+
+                      {/* Clickable card body */}
+                      <button
+                        onClick={() => navigate(`/formulario/${f.id}`)}
+                        className="flex-1 text-left px-4 pt-4 pb-3.5 transition-colors active:bg-white/5 lg:hover:bg-white/[0.03]"
                       >
-                        <RefreshCw size={9} />
-                        Não sincronizado
-                      </span>
-                    )}
-                  </div>
-                  <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-all flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
-                </div>
+                        {/* Status badge + chevron */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span
+                              className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                              style={f.status === 'finalizado'
+                                ? { color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }
+                                : { color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
+                            >
+                              {f.status === 'finalizado' ? <CheckCircle size={9} /> : <Clock size={9} />}
+                              {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
+                            </span>
+                            <span
+                              className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                              style={{ color: '#fb923c', background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.25)' }}
+                              title="Alterações neste aparelho ainda não subiram ao banco"
+                            >
+                              <RefreshCw size={9} />
+                              Não sincronizado
+                            </span>
+                          </div>
+                          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-all flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                        </div>
 
-                {/* Incident number */}
-                <p className="font-black text-xl sm:text-2xl leading-none tracking-tight truncate mb-4" style={{ color: '#f0f0f8' }}>
-                  {f.incidente || <span className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>Sem identificação</span>}
-                </p>
+                        {/* Incident number */}
+                        <p className="font-black text-xl sm:text-2xl leading-none tracking-tight truncate mb-4" style={{ color: '#f0f0f8' }}>
+                          {f.incidente || <span className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>Sem identificação</span>}
+                        </p>
 
-                {/* Metadata grid */}
-                <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 mb-3.5">
-                  {(f.dataInicio || f.dataFinal) && (
-                    <div className="col-span-2">
-                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Período</p>
-                      <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                        {formatarDataServico(f.dataInicio)}
-                        {f.dataFinal && f.dataFinal !== f.dataInicio && (
-                          <span style={{ color: 'rgba(255,255,255,0.35)' }}> → {formatarDataServico(f.dataFinal)}</span>
-                        )}
-                      </p>
+                        {/* Metadata grid */}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 mb-3.5">
+                          {(f.dataInicio || f.dataFinal) && (
+                            <div className="col-span-2">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Período</p>
+                              <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                                {formatarDataServico(f.dataInicio)}
+                                {f.dataFinal && f.dataFinal !== f.dataInicio && (
+                                  <span style={{ color: 'rgba(255,255,255,0.35)' }}> → {formatarDataServico(f.dataFinal)}</span>
+                                )}
+                              </p>
+                            </div>
+                          )}
+                          {f.base && (
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Base</p>
+                              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.base}</p>
+                            </div>
+                          )}
+                          {f.municipio && (
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Município</p>
+                              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.municipio}</p>
+                            </div>
+                          )}
+                          {f.equipe && (
+                            <div className="col-span-2">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Equipe</p>
+                              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.equipe}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Timestamp */}
+                        <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                          Salvo {formatarData(f.atualizadoEm)}
+                          {f.status === 'finalizado' && (
+                            <span style={{ color: '#34d399', fontWeight: 600 }}> · editável</span>
+                          )}
+                        </p>
+                      </button>
+
+                      {/* Actions */}
+                      <div className="px-3 pb-3 pt-2.5 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        {/* Sincronizar este formulário individualmente */}
+                        <button
+                          onClick={(e) => sincronizarIndividual(e, f)}
+                          disabled={sincronizandoId === f.id}
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+                          style={{ color: '#fb923c', background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.3)' }}
+                        >
+                          <RefreshCw size={13} className={sincronizandoId === f.id ? 'animate-spin' : ''} />
+                          {sincronizandoId === f.id ? 'Sincronizando…' : 'Sincronizar agora'}
+                        </button>
+
+                        {/* Primary: Acionamento */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente, formId: f.id } }) }}
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+                          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
+                        >
+                          <Zap size={13} strokeWidth={2.5} />
+                          Acionamento
+                        </button>
+
+                        {/* Secondary actions */}
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
+                            className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97]"
+                            style={{ color: '#ff6b9d', background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.25)' }}
+                          >
+                            <Pencil size={12} />
+                            Editar
+                          </button>
+
+                          <button
+                            onClick={(e) => gerarPDF(e, f)}
+                            disabled={exportandoPDF === f.id}
+                            className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97] disabled:opacity-40"
+                            style={{ background: 'linear-gradient(135deg,#7B0029,#C0014A)', boxShadow: '0 2px 8px rgba(192,1,74,0.25)' }}
+                          >
+                            {exportandoPDF === f.id ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+                            PDF
+                          </button>
+
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setCompartilhando(f.id) }}
+                            className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
+                            style={{ background: 'linear-gradient(135deg,#14532d,#16a34a)', boxShadow: '0 2px 8px rgba(22,163,74,0.25)' }}
+                          >
+                            <Share2 size={12} />
+                            Enviar
+                          </button>
+
+                          <button
+                            onClick={() => setExcluindo(f.id)}
+                            className="flex items-center justify-center w-10 rounded-xl transition-all"
+                            style={{ color: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {f.base && (
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Base</p>
-                      <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.base}</p>
-                    </div>
-                  )}
-                  {f.municipio && (
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Município</p>
-                      <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.municipio}</p>
-                    </div>
-                  )}
-                  {f.equipe && (
-                    <div className="col-span-2">
-                      <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Equipe</p>
-                      <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.equipe}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Timestamp */}
-                <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.22)' }}>
-                  Salvo {formatarData(f.atualizadoEm)}
-                  {f.status === 'finalizado' && (
-                    <span style={{ color: '#34d399', fontWeight: 600 }}> · editável</span>
-                  )}
-                </p>
-              </button>
-
-              {/* Actions */}
-              <div className="px-3 pb-3 pt-2.5 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                {/* Primary: Acionamento */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente, formId: f.id } }) }}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
-                >
-                  <Zap size={13} strokeWidth={2.5} />
-                  Acionamento
-                </button>
-
-                {/* Secondary actions */}
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
-                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97]"
-                    style={{ color: '#ff6b9d', background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.25)' }}
-                  >
-                    <Pencil size={12} />
-                    Editar
-                  </button>
-
-                  <button
-                    onClick={(e) => gerarPDF(e, f)}
-                    disabled={exportandoPDF === f.id}
-                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97] disabled:opacity-40"
-                    style={{ background: 'linear-gradient(135deg,#7B0029,#C0014A)', boxShadow: '0 2px 8px rgba(192,1,74,0.25)' }}
-                  >
-                    {exportandoPDF === f.id ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
-                    PDF
-                  </button>
-
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setCompartilhando(f.id) }}
-                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
-                    style={{ background: 'linear-gradient(135deg,#14532d,#16a34a)', boxShadow: '0 2px 8px rgba(22,163,74,0.25)' }}
-                  >
-                    <Share2 size={12} />
-                    Enviar
-                  </button>
-
-                  <button
-                    onClick={() => setExcluindo(f.id)}
-                    className="flex items-center justify-center w-10 rounded-xl transition-all"
-                    style={{ color: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent' }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+
+            {sincronizadosFiltrados.length > 0 && (
+              <div>
+                <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest mb-3 px-1" style={{ color: 'rgba(52,211,153,0.85)' }}>
+                  <CheckCircle size={12} />
+                  Sincronizados · {sincronizadosFiltrados.length}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 min-w-0">
+                  {sincronizadosFiltrados.map((f) => (
+                    <div
+                      key={f.id}
+                      className="group rounded-2xl overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl"
+                      style={{
+                        background: '#141820',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+                      }}
+                    >
+                      {/* Status accent line */}
+                      <div className="h-px w-full flex-shrink-0" style={{
+                        background: f.status === 'finalizado'
+                          ? 'linear-gradient(90deg,#059669,#10b981)'
+                          : 'linear-gradient(90deg,#d97706,#fbbf24)'
+                      }} />
+
+                      {/* Clickable card body */}
+                      <button
+                        onClick={() => navigate(`/formulario/${f.id}`)}
+                        className="flex-1 text-left px-4 pt-4 pb-3.5 transition-colors active:bg-white/5 lg:hover:bg-white/[0.03]"
+                      >
+                        {/* Status badge + chevron */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span
+                              className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+                              style={f.status === 'finalizado'
+                                ? { color: '#34d399', background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.2)' }
+                                : { color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.2)' }}
+                            >
+                              {f.status === 'finalizado' ? <CheckCircle size={9} /> : <Clock size={9} />}
+                              {f.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
+                            </span>
+                          </div>
+                          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-all flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                        </div>
+
+                        {/* Incident number */}
+                        <p className="font-black text-xl sm:text-2xl leading-none tracking-tight truncate mb-4" style={{ color: '#f0f0f8' }}>
+                          {f.incidente || <span className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>Sem identificação</span>}
+                        </p>
+
+                        {/* Metadata grid */}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 mb-3.5">
+                          {(f.dataInicio || f.dataFinal) && (
+                            <div className="col-span-2">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Período</p>
+                              <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                                {formatarDataServico(f.dataInicio)}
+                                {f.dataFinal && f.dataFinal !== f.dataInicio && (
+                                  <span style={{ color: 'rgba(255,255,255,0.35)' }}> → {formatarDataServico(f.dataFinal)}</span>
+                                )}
+                              </p>
+                            </div>
+                          )}
+                          {f.base && (
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Base</p>
+                              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.base}</p>
+                            </div>
+                          )}
+                          {f.municipio && (
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Município</p>
+                              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.municipio}</p>
+                            </div>
+                          )}
+                          {f.equipe && (
+                            <div className="col-span-2">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Equipe</p>
+                              <p className="text-xs font-semibold truncate" style={{ color: 'rgba(255,255,255,0.75)' }}>{f.equipe}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Timestamp */}
+                        <p className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                          Salvo {formatarData(f.atualizadoEm)}
+                          {f.status === 'finalizado' && (
+                            <span style={{ color: '#34d399', fontWeight: 600 }}> · editável</span>
+                          )}
+                        </p>
+                      </button>
+
+                      {/* Actions */}
+                      <div className="px-3 pb-3 pt-2.5 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        {/* Primary: Acionamento */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate('/acionamento', { state: { incidente: f.incidente, formId: f.id } }) }}
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.98]"
+                          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 2px 10px rgba(37,99,235,0.3)' }}
+                        >
+                          <Zap size={13} strokeWidth={2.5} />
+                          Acionamento
+                        </button>
+
+                        {/* Secondary actions */}
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/formulario/${f.id}`) }}
+                            className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97]"
+                            style={{ color: '#ff6b9d', background: 'rgba(192,1,74,0.12)', border: '1px solid rgba(192,1,74,0.25)' }}
+                          >
+                            <Pencil size={12} />
+                            Editar
+                          </button>
+
+                          <button
+                            onClick={(e) => gerarPDF(e, f)}
+                            disabled={exportandoPDF === f.id}
+                            className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97] disabled:opacity-40"
+                            style={{ background: 'linear-gradient(135deg,#7B0029,#C0014A)', boxShadow: '0 2px 8px rgba(192,1,74,0.25)' }}
+                          >
+                            {exportandoPDF === f.id ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+                            PDF
+                          </button>
+
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setCompartilhando(f.id) }}
+                            className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all active:scale-[0.97]"
+                            style={{ background: 'linear-gradient(135deg,#14532d,#16a34a)', boxShadow: '0 2px 8px rgba(22,163,74,0.25)' }}
+                          >
+                            <Share2 size={12} />
+                            Enviar
+                          </button>
+
+                          <button
+                            onClick={() => setExcluindo(f.id)}
+                            className="flex items-center justify-center w-10 rounded-xl transition-all"
+                            style={{ color: 'rgba(255,255,255,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.1)' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── MODAL COMPARTILHAR ── */}
