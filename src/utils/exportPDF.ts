@@ -654,5 +654,26 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
 
   const nome = `EME_${form.incidente || form.id.slice(0, 8)}_${fmt(form.dataInicio).replace(/\//g, '-')}.pdf`
   if (mode === 'blob') return { blob: doc.output('blob') as unknown as Blob, nome }
-  doc.save(nome)
+
+  const blob = doc.output('blob') as unknown as Blob
+  const file = new File([blob], nome, { type: 'application/pdf' })
+
+  // No mobile, usa Web Share API para abrir a caixa de compartilhamento nativa
+  // (WhatsApp, Email, Salvar em Arquivos, etc.). Fallback: download tradicional.
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: nome })
+      return
+    } catch {
+      // Usuário cancelou ou share falhou — cai no download normal
+    }
+  }
+
+  // Fallback desktop / navegadores sem Web Share API
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nome
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
