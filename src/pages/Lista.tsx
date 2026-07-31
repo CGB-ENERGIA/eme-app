@@ -25,22 +25,20 @@ export default function Lista() {
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [sincronizandoId, setSincronizandoId] = useState<string | null>(null)
 
-  // Tela de progresso durante a sincronização (individual ou geral)
-  const [syncOverlayAtivo, setSyncOverlayAtivo] = useState(false)
-  const [syncOverlayModo, setSyncOverlayModo] = useState<'individual' | 'geral'>('geral')
-  const [syncOverlayIncidente, setSyncOverlayIncidente] = useState<string | undefined>(undefined)
-  const [syncOverlayProgresso, setSyncOverlayProgresso] = useState<{ enviados: number; total: number } | null>(null)
-  const [syncOverlaySegundos, setSyncOverlaySegundos] = useState(0)
+  // Progresso de sincronização — individual (barra no próprio card) e geral (barra no cabeçalho)
+  const [syncGeralProgresso, setSyncGeralProgresso] = useState<{ enviados: number; total: number } | null>(null)
+  const [syncSegundos, setSyncSegundos] = useState(0)
 
   useEffect(() => {
-    if (!syncOverlayAtivo) return
+    const ativo = sincronizando || !!sincronizandoId
+    if (!ativo) return
     const inicio = Date.now()
-    setSyncOverlaySegundos(0)
+    setSyncSegundos(0)
     const id = window.setInterval(() => {
-      setSyncOverlaySegundos(Math.floor((Date.now() - inicio) / 1000))
+      setSyncSegundos(Math.floor((Date.now() - inicio) / 1000))
     }, 1000)
     return () => window.clearInterval(id)
-  }, [syncOverlayAtivo])
+  }, [sincronizando, sincronizandoId])
 
   const formatarTempo = (s: number) => {
     const m = Math.floor(s / 60)
@@ -82,11 +80,9 @@ export default function Lista() {
     if (sincronizando) return
     setSincronizando(true)
     setSyncMsg(null)
-    setSyncOverlayModo('geral')
-    setSyncOverlayProgresso(null)
-    setSyncOverlayAtivo(true)
+    setSyncGeralProgresso(null)
     try {
-      const result = await sincronizarTudo((enviados, total) => setSyncOverlayProgresso({ enviados, total }))
+      const result = await sincronizarTudo((enviados, total) => setSyncGeralProgresso({ enviados, total }))
       const lista = await listarFormularios()
       setFormularios(lista)
       setSyncMsg(
@@ -100,7 +96,7 @@ export default function Lista() {
       setSyncMsg('Falha na sincronização. Tente novamente.')
     } finally {
       setSincronizando(false)
-      setSyncOverlayAtivo(false)
+      setSyncGeralProgresso(null)
       window.setTimeout(() => setSyncMsg(null), 4000)
     }
   }
@@ -109,9 +105,6 @@ export default function Lista() {
     e.stopPropagation()
     if (sincronizandoId) return
     setSincronizandoId(form.id)
-    setSyncOverlayModo('individual')
-    setSyncOverlayIncidente(form.incidente)
-    setSyncOverlayAtivo(true)
     try {
       const atualizado = await sincronizarFormularioAgora(form)
       setFormularios((prev) => prev.map((f) => (f.id === atualizado.id ? atualizado : f)))
@@ -120,7 +113,6 @@ export default function Lista() {
       window.alert('Não foi possível sincronizar este formulário agora. Verifique a conexão e tente novamente.')
     } finally {
       setSincronizandoId(null)
-      setSyncOverlayAtivo(false)
     }
   }
 
@@ -258,7 +250,34 @@ export default function Lista() {
             <p className="text-xs sm:text-sm lg:text-base mb-5 sm:mb-6 lg:mb-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
               Edite, compartilhe o link ou gere o PDF novamente
             </p>
-            {syncMsg && (
+            {sincronizando && (
+              <div className="mb-4 rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {syncGeralProgresso && syncGeralProgresso.total > 0
+                      ? `Sincronizando ${syncGeralProgresso.enviados}/${syncGeralProgresso.total} · ${Math.round((syncGeralProgresso.enviados / syncGeralProgresso.total) * 100)}%`
+                      : 'Preparando sincronização…'}
+                  </span>
+                  <span className="text-xs font-bold tabular-nums flex-shrink-0" style={{ color: '#ff6b9d' }}>
+                    {formatarTempo(syncSegundos)}
+                  </span>
+                </div>
+                <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                  {syncGeralProgresso && syncGeralProgresso.total > 0 ? (
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        background: 'linear-gradient(90deg,#7B0029,#C0014A)',
+                        width: `${Math.round((syncGeralProgresso.enviados / syncGeralProgresso.total) * 100)}%`,
+                      }}
+                    />
+                  ) : (
+                    <div className="sync-indeterminate" style={{ background: 'linear-gradient(90deg,#7B0029,#C0014A)' }} />
+                  )}
+                </div>
+              </div>
+            )}
+            {!sincronizando && syncMsg && (
               <p className="mb-4 text-xs font-semibold rounded-xl px-3 py-2 break-words" style={{ color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}>
                 {syncMsg}
               </p>
@@ -513,15 +532,27 @@ export default function Lista() {
                       {/* Actions */}
                       <div className="px-3 pb-3 pt-2.5 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                         {/* Sincronizar este formulário individualmente */}
-                        <button
-                          onClick={(e) => sincronizarIndividual(e, f)}
-                          disabled={sincronizandoId === f.id}
-                          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-60"
-                          style={{ color: '#fb923c', background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.3)' }}
-                        >
-                          <RefreshCw size={13} className={sincronizandoId === f.id ? 'animate-spin' : ''} />
-                          {sincronizandoId === f.id ? 'Sincronizando…' : 'Sincronizar agora'}
-                        </button>
+                        {sincronizandoId === f.id ? (
+                          <div className="w-full rounded-xl px-3 py-2" style={{ background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.3)' }}>
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className="text-xs font-bold" style={{ color: '#fb923c' }}>Sincronizando…</span>
+                              <span className="text-xs font-bold tabular-nums" style={{ color: '#fb923c' }}>{formatarTempo(syncSegundos)}</span>
+                            </div>
+                            <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(251,146,60,0.2)' }}>
+                              <div className="sync-indeterminate" style={{ background: '#fb923c' }} />
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => sincronizarIndividual(e, f)}
+                            disabled={!!sincronizandoId}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+                            style={{ color: '#fb923c', background: 'rgba(251,146,60,0.14)', border: '1px solid rgba(251,146,60,0.3)' }}
+                          >
+                            <RefreshCw size={13} />
+                            Sincronizar agora
+                          </button>
+                        )}
 
                         {/* Primary: Acionamento */}
                         <button
@@ -835,38 +866,6 @@ export default function Lista() {
           </div>
         )
       })()}
-
-      {/* ── OVERLAY DE SINCRONIZAÇÃO ── */}
-      {syncOverlayAtivo && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div
-            className="rounded-3xl w-full max-w-xs p-7 text-center shadow-2xl"
-            style={{ background: '#141820', border: '1px solid rgba(255,255,255,0.09)' }}
-          >
-            <div className="relative w-16 h-16 mx-auto mb-5">
-              <div
-                className="absolute inset-0 rounded-full border-4 animate-spin"
-                style={{ borderColor: 'rgba(192,1,74,0.25)', borderTopColor: '#C0014A' }}
-              />
-              <RefreshCw size={22} className="absolute inset-0 m-auto" style={{ color: '#C0014A' }} />
-            </div>
-            <h3 className="font-black text-lg" style={{ color: '#f0f0f8' }}>Sincronizando…</h3>
-            <p className="text-sm mt-1.5 break-words" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {syncOverlayModo === 'individual'
-                ? `Enviando formulário ${syncOverlayIncidente || '—'}`
-                : syncOverlayProgresso
-                  ? `${syncOverlayProgresso.enviados} de ${syncOverlayProgresso.total} formulário${syncOverlayProgresso.total !== 1 ? 's' : ''}`
-                  : 'Preparando envio...'}
-            </p>
-            <p className="text-3xl font-black tabular-nums mt-4" style={{ color: '#C0014A' }}>
-              {formatarTempo(syncOverlaySegundos)}
-            </p>
-            <p className="text-[11px] mt-2 uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              Não feche o aplicativo
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* ── MODAL EXCLUIR ── */}
       {excluindo && (
