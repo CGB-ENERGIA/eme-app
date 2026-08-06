@@ -124,7 +124,7 @@ function headerPage(doc: jsPDF, logoBase64?: string | null) {
   }
   const logoSize = logoW
 
-  // Texto CGB / ENGENHARIA ao lado da logo
+  // Texto CGB / ENERGIA ao lado da logo
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(14)
   doc.setTextColor(...CGB.dark)
@@ -132,7 +132,7 @@ function headerPage(doc: jsPDF, logoBase64?: string | null) {
   doc.setFontSize(6.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...CGB.main)
-  doc.text('ENGENHARIA', logoX + logoSize + 4, 18)
+  doc.text('ENERGIA', logoX + logoSize + 4, 18)
 
   // Linha divisória vertical sutil entre a marca e o título
   doc.setDrawColor(...CGB.mid)
@@ -231,7 +231,7 @@ function drawFooter(doc: jsPDF, page: number, total: number) {
   doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(...CGB.muted)
-  doc.text('CGB Engenharia  —  Formulário de Atendimento Emergencial', MX, y)
+  doc.text('CGB Energia  —  Formulário de Atendimento Emergencial', MX, y)
   doc.text(`Pág. ${page} / ${total}`, W - MX, y, { align: 'right' })
 }
 

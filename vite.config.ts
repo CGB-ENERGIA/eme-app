@@ -14,7 +14,7 @@ export default defineConfig({
         id: '/',
         name: 'EME - Atendimento Emergencial',
         short_name: 'EME',
-        description: 'Formulário de Atendimento Emergencial CGB Engenharia',
+        description: 'Formulário de Atendimento Emergencial CGB Energia',
         theme_color: '#9B003C',
         background_color: '#9B003C',
         display: 'standalone',

@@ -171,8 +171,8 @@ export default function AppShell({ page, children }: Props) {
             <img src="/logo-cgb.png" alt="CGB" style={{ width: 28, height: 28, objectFit: 'contain' }} />
           </div>
           <div className="hidden sm:block">
-            <p className="font-black text-sm leading-none tracking-tight" style={{ color: '#f0f0f8' }}>CGB</p>
-            <p className="text-[9px] font-semibold tracking-widest uppercase mt-0.5" style={{ color: 'rgba(192,1,74,0.8)' }}>Engenharia</p>
+            <p className="font-brand text-base leading-none tracking-tight italic" style={{ color: '#f0f0f8' }}>CGB</p>
+            <p className="font-brand text-[10px] tracking-widest uppercase mt-0.5 italic" style={{ color: 'rgba(192,1,74,0.8)' }}>Energia</p>
           </div>
 
           {showCredit && (

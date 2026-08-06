@@ -9,7 +9,7 @@ function fmt(d: string) {
 
 export async function exportarExcel(form: FormularioEME): Promise<void> {
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'CGB Engenharia — EME App'
+  wb.creator = 'CGB Energia — EME App'
   wb.created = new Date()
 
   const ws = wb.addWorksheet('Atendimento Emergencial', {
@@ -40,7 +40,7 @@ export async function exportarExcel(form: FormularioEME): Promise<void> {
   const titleRow = ws.getRow(1)
   titleRow.height = 32
   const titleCell = ws.getCell('A1')
-  titleCell.value = 'FORMULÁRIO DE ATENDIMENTO EMERGENCIAL — CGB ENGENHARIA'
+  titleCell.value = 'FORMULÁRIO DE ATENDIMENTO EMERGENCIAL — CGB ENERGIA'
   titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } }
   titleCell.fill = blueHeader
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' }

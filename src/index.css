@@ -2,6 +2,18 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: 'Halvett Black Italic';
+  src: url('/fonts/halvettblack-italic.ttf') format('truetype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+.font-brand {
+  font-family: 'Halvett Black Italic', system-ui, sans-serif;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
