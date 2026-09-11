@@ -39,20 +39,21 @@ export default function EquipeMultiSelect({
   id = 'equipe-select',
 }: Props) {
   const [digitando, setDigitando] = useState('')
+  const [showSugg, setShowSugg] = useState(false)
   const selecionadas = parseEquipes(value)
   const opcoesBase = equipesDaBase(base)
-  const opcoes = opcoesBase.filter((eq) => !selecionadas.includes(eq))
+  const opcoesDisponiveis = opcoesBase.filter((eq) => !selecionadas.includes(eq))
+  const opcoesFiltradas = digitando.trim()
+    ? opcoesDisponiveis.filter((eq) => eq.includes(digitando.trim()))
+    : opcoesDisponiveis
   const hasError = Boolean(showError && required && selecionadas.length === 0)
-  const listId = `${id}-sugestoes`
 
   const adicionar = (raw: string) => {
     const equipe = raw.trim().toUpperCase()
-    if (!equipe || selecionadas.includes(equipe)) {
-      setDigitando('')
-      return
-    }
-    onChange(joinEquipes([...selecionadas, equipe]))
     setDigitando('')
+    setShowSugg(false)
+    if (!equipe || selecionadas.includes(equipe)) return
+    onChange(joinEquipes([...selecionadas, equipe]))
   }
 
   const remover = (equipe: string) => {
@@ -91,17 +92,10 @@ export default function EquipeMultiSelect({
         </div>
       )}
 
-      <datalist id={listId}>
-        {opcoes.map((eq) => (
-          <option key={eq} value={eq} />
-        ))}
-      </datalist>
-
-      <div className="flex items-center gap-1.5">
+      <div className="relative flex items-center gap-1.5">
         <input
           id={id}
           type="text"
-          list={listId}
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
@@ -111,15 +105,9 @@ export default function EquipeMultiSelect({
               : base?.trim() ? 'Digite ou selecione a equipe' : 'Selecione a base ou digite a equipe'
           }
           value={digitando}
-          onChange={(e) => {
-            const v = e.target.value.toUpperCase()
-            // Ao tocar numa sugestão da datalist, o input já vem com o valor exato — adiciona na hora.
-            if (opcoesBase.includes(v)) {
-              adicionar(v)
-              return
-            }
-            setDigitando(v)
-          }}
+          onChange={(e) => setDigitando(e.target.value.toUpperCase())}
+          onFocus={() => setShowSugg(true)}
+          onBlur={() => setTimeout(() => setShowSugg(false), 150)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ',') {
               e.preventDefault()
@@ -133,7 +121,7 @@ export default function EquipeMultiSelect({
         {digitando.trim() && (
           <button
             type="button"
-            onClick={() => adicionar(digitando)}
+            onMouseDown={(e) => { e.preventDefault(); adicionar(digitando) }}
             className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl text-white transition active:scale-95"
             style={{ background: 'linear-gradient(135deg, #9B003C, #C0014A)' }}
             aria-label="Adicionar equipe"
@@ -141,9 +129,25 @@ export default function EquipeMultiSelect({
             <Plus size={16} />
           </button>
         )}
+
+        {showSugg && opcoesFiltradas.length > 0 && (
+          <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+            {opcoesFiltradas.map((eq) => (
+              <button
+                key={eq}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); adicionar(eq) }}
+                className="w-full text-left px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
+                style={{ color: '#64748b' }}
+              >
+                {eq}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {opcoes.length > 0 && (
+      {opcoesDisponiveis.length > 0 && (
         <p className="text-[11px] text-slate-400 dark:text-slate-500">
           Sugestões de {base}: toque na lista ou digite livremente. Enter ou vírgula adiciona.
         </p>
