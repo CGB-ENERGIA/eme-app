@@ -32,6 +32,7 @@ export default function Solicitacoes() {
     dataFinal: '',
     equipe: '',
     supervisor: '',
+    trocaTransformador: '' as '' | 'sim' | 'nao',
   })
 
   useEffect(() => {
@@ -105,6 +106,7 @@ export default function Solicitacoes() {
       dataFinal: dados.dataFinal,
       equipe: dados.equipe,
       supervisor: dados.supervisor,
+      trocaTransformador: dados.trocaTransformador,
     }
     await salvarFormulario(form)
     const url = `${window.location.origin}/formulario/${form.id}?step=1&campo=1`
@@ -158,7 +160,7 @@ export default function Solicitacoes() {
   const novasSolicitacao = () => {
     setLinkGerado(null)
     setShowErrors(false)
-    setDados({ incidente: '', base: '', municipio: '', dataInicio: '', dataFinal: '', equipe: '', supervisor: '' })
+    setDados({ incidente: '', base: '', municipio: '', dataInicio: '', dataFinal: '', equipe: '', supervisor: '', trocaTransformador: '' })
   }
 
   const formatarDataServico = (d: string) => {
@@ -384,6 +386,32 @@ export default function Solicitacoes() {
               value={dados.supervisor}
               onChange={(e) => setDados(p => ({ ...p, supervisor: e.target.value }))}
             />
+          </div>
+
+          {/* Troca de Transformador — sinaliza para a equipe de campo levar as 2 fotos obrigatórias */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Troca de Transformador?
+            </span>
+            <div className="flex gap-2">
+              {(['sim', 'nao'] as const).map((op) => (
+                <button key={op} type="button"
+                  onClick={() => setDados(p => ({ ...p, trocaTransformador: op }))}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
+                  style={dados.trocaTransformador === op ? {
+                    background: op === 'sim' ? '#FFF0F4' : '#F0FFF4',
+                    borderColor: op === 'sim' ? '#C0014A' : '#059669',
+                    color: op === 'sim' ? '#C0014A' : '#059669',
+                  } : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}>
+                  {op === 'sim' ? 'Sim' : 'Não'}
+                </button>
+              ))}
+            </div>
+            {dados.trocaTransformador === 'sim' && (
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                A equipe de campo verá 2 fotos obrigatórias: placa antiga e placa nova.
+              </span>
+            )}
           </div>
 
           <button

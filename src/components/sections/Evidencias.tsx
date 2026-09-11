@@ -107,26 +107,13 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
         </div>
       ))}
 
-      {/* Troca de Transformador — evidência fixa e obrigatória quando "Sim" */}
-      <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-3 space-y-3">
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#9B003C' }}>
-          Troca de Transformador?
-        </span>
-        <div className="flex gap-2">
-          {(['sim', 'nao'] as const).map((op) => (
-            <button key={op} type="button"
-              onClick={() => onChange({ trocaTransformador: op })}
-              className="flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all border-2"
-              style={form.trocaTransformador === op ? {
-                background: op === 'sim' ? '#FFF0F4' : '#F0FFF4',
-                borderColor: op === 'sim' ? '#C0014A' : '#059669',
-                color: op === 'sim' ? '#C0014A' : '#059669',
-              } : { background: 'transparent', borderColor: '#E2E8F0', color: '#94A3B8' }}>
-              {op === 'sim' ? 'Sim' : 'Não'}
-            </button>
-          ))}
-        </div>
-        {form.trocaTransformador === 'sim' && (
+      {/* Troca de Transformador — sinalizada na abertura da solicitação. Quando "sim",
+          mostra as 2 fotos fixas e obrigatórias; a equipe de campo não escolhe aqui. */}
+      {form.trocaTransformador === 'sim' && (
+        <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-3 space-y-3">
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#9B003C' }}>
+            Troca de Transformador
+          </span>
           <div className="grid grid-cols-2 gap-3">
             <PhotoCapture
               label="FOTO DA PLACA ANTIGA"
@@ -149,8 +136,8 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
               small
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Item fixo — Foto da Energização */}
       <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 p-3 space-y-3">
