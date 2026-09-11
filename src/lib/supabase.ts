@@ -35,6 +35,7 @@ function toRow(form: FormularioEME): Row {
     troca_transformador: form.trocaTransformador,
     foto_placa_antiga: isRemoteUrl(form.fotoPlacaAntiga) ? form.fotoPlacaAntiga : null,
     foto_placa_nova: isRemoteUrl(form.fotoPlacaNova) ? form.fotoPlacaNova : null,
+    foto_ficha_trafo: isRemoteUrl(form.fotoFichaTrafo) ? form.fotoFichaTrafo : null,
     foto_acionamento: isRemoteUrl(form.fotoAcionamento) ? form.fotoAcionamento : null,
     foto_saida_base: isRemoteUrl(form.fotoSaidaBase) ? form.fotoSaidaBase : null,
     foto_chegada_servico: isRemoteUrl(form.fotoChegadaServico) ? form.fotoChegadaServico : null,
@@ -77,6 +78,7 @@ function fromRow(row: Row): FormularioEME {
     trocaTransformador: (row.troca_transformador as '' | 'sim' | 'nao') ?? '',
     fotoPlacaAntiga: (row.foto_placa_antiga as string | null) ?? null,
     fotoPlacaNova: (row.foto_placa_nova as string | null) ?? null,
+    fotoFichaTrafo: (row.foto_ficha_trafo as string | null) ?? null,
     fotoAcionamento: (row.foto_acionamento as string | null) ?? null,
     fotoSaidaBase: (row.foto_saida_base as string | null) ?? null,
     fotoChegadaServico: (row.foto_chegada_servico as string | null) ?? null,
@@ -97,7 +99,7 @@ async function uploadFotosParaR2(form: FormularioEME): Promise<FormularioEME> {
   const campos = [
     'fotoAcionamento', 'fotoSaidaBase',
     'fotoChegadaServico', 'fotoEnergizacao', 'fotoChegadaBasePosAtendimento',
-    'fotoPlacaAntiga', 'fotoPlacaNova',
+    'fotoPlacaAntiga', 'fotoPlacaNova', 'fotoFichaTrafo',
   ] as const
 
   // Monta todas as fotos (simples + evidências) em um único mapa e sobe tudo em paralelo.
@@ -136,7 +138,7 @@ export async function syncFormulario(form: FormularioEME): Promise<FormularioEME
   const campos = [
     'fotoAcionamento', 'fotoSaidaBase',
     'fotoChegadaServico', 'fotoEnergizacao', 'fotoChegadaBasePosAtendimento',
-    'fotoPlacaAntiga', 'fotoPlacaNova',
+    'fotoPlacaAntiga', 'fotoPlacaNova', 'fotoFichaTrafo',
   ] as const
   for (const campo of campos) {
     const val = formComUrls[campo]

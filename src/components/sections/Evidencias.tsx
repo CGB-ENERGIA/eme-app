@@ -136,6 +136,15 @@ export default function Evidencias({ form, onChange, showErrors }: Props) {
               small
             />
           </div>
+          {/* Opcional — não entra no PDF do relatório final, só registro interno. */}
+          <PhotoCapture
+            label="FOTO DA FICHA DE TRAFO"
+            value={form.fotoFichaTrafo}
+            onChange={(v) => onChange({ fotoFichaTrafo: v })}
+            incidente={form.incidente}
+            equipe={form.equipe}
+            small
+          />
         </div>
       )}
 

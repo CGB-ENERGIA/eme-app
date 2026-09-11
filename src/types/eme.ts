@@ -38,6 +38,8 @@ export interface FormularioEME {
   trocaTransformador: '' | 'sim' | 'nao'
   fotoPlacaAntiga: string | null
   fotoPlacaNova: string | null
+  /** Opcional — uso interno/auditoria, nunca entra no PDF do relatório final. */
+  fotoFichaTrafo: string | null
 
   // Fotos do serviço
   fotoAcionamento: string | null
@@ -89,6 +91,7 @@ export const criarFormularioVazio = (): FormularioEME => ({
   trocaTransformador: '',
   fotoPlacaAntiga: null,
   fotoPlacaNova: null,
+  fotoFichaTrafo: null,
   fotoAcionamento: null,
   fotoSaidaBase: null,
   fotoChegadaServico: null,
