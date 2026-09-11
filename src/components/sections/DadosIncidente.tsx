@@ -3,7 +3,7 @@ import type { FormularioEME } from '../../types/eme'
 import { equipesDaBase } from '../../data/equipes'
 import SectionCard from '../ui/SectionCard'
 import Field from '../ui/Field'
-import EquipeSelect from '../ui/EquipeSelect'
+import EquipeMultiSelect, { parseEquipes } from '../ui/EquipeMultiSelect'
 
 interface Props {
   form: FormularioEME
@@ -33,8 +33,8 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           onChange={(e) => {
             const base = e.target.value
             const lista = equipesDaBase(base)
-            const equipeOk = lista.includes(form.equipe)
-            onChange({ base, equipe: equipeOk ? form.equipe : '' })
+            const validas = parseEquipes(form.equipe).filter((eq) => lista.includes(eq))
+            onChange({ base, equipe: validas.join(', ') })
           }}
         />
         <>
@@ -102,7 +102,7 @@ export default function DadosIncidente({ form, onChange, showErrors }: Props) {
           value={form.dataFinal}
           onChange={(e) => onChange({ dataFinal: e.target.value })}
         />
-        <EquipeSelect
+        <EquipeMultiSelect
           id="equipe-formulario"
           value={form.equipe}
           base={form.base}

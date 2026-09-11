@@ -7,7 +7,7 @@ import { salvarFormulario, listarFormularios, sincronizarTudo } from '../store/d
 import AppShell from '../components/layout/AppShell'
 import Field from '../components/ui/Field'
 import SectionCard from '../components/ui/SectionCard'
-import EquipeSelect from '../components/ui/EquipeSelect'
+import EquipeMultiSelect, { parseEquipes } from '../components/ui/EquipeMultiSelect'
 import { useAppRole } from '../contexts/RoleContext'
 import { equipesDaBase } from '../data/equipes'
 
@@ -305,8 +305,8 @@ export default function Solicitacoes() {
                     type="button"
                     onClick={() => setDados(p => {
                       const lista = equipesDaBase(base)
-                      const equipeOk = lista.includes(p.equipe)
-                      return { ...p, base, equipe: equipeOk ? p.equipe : '' }
+                      const validas = parseEquipes(p.equipe).filter((eq) => lista.includes(eq))
+                      return { ...p, base, equipe: validas.join(', ') }
                     })}
                     className="min-w-0 flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-semibold text-left transition-all active:scale-95 border-2"
                     style={selected
@@ -368,7 +368,7 @@ export default function Solicitacoes() {
               value={dados.dataFinal}
               onChange={(e) => setDados(p => ({ ...p, dataFinal: e.target.value }))}
             />
-            <EquipeSelect
+            <EquipeMultiSelect
               id="equipe-solicitacao"
               value={dados.equipe}
               base={dados.base}
