@@ -48,6 +48,10 @@ function validarStep(step: number, form: FormularioEME): string[] {
       if (ev.descricao.trim() && !ev.foto1) erros.push(`ev${i}f1`)
       if (ev.descricao2.trim() && !ev.foto2) erros.push(`ev${i}f2`)
     })
+    if (form.trocaTransformador === 'sim') {
+      if (!form.fotoPlacaAntiga) erros.push('fotoPlacaAntiga')
+      if (!form.fotoPlacaNova) erros.push('fotoPlacaNova')
+    }
   }
   if (step === 3) {
     if (!form.horaEnergizacao) erros.push('horaEnergizacao')

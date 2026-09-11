@@ -565,7 +565,9 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
 
   // ── EVIDÊNCIAS ───────────────────────────────────────────────
   const evidencias = form.evidencias.filter(e => e.descricao || e.foto1 || e.foto2)
-  if (evidencias.length > 0) {
+  const temTrocaTransformador = form.trocaTransformador === 'sim' && (!!form.fotoPlacaAntiga || !!form.fotoPlacaNova)
+
+  if (evidencias.length > 0 || temTrocaTransformador) {
     checkPage(30)
     y = sectionTitle(doc, 'Evidências', y)
 
@@ -574,9 +576,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
     const evFotoH = 90
     let cardsNaPagina = 0
 
-    for (const [idx, ev] of form.evidencias.entries()) {
-      if (!ev.descricao && !ev.descricao2 && !ev.foto1 && !ev.foto2) continue
-
+    const drawEvidenciaCard = async (titulo: string, fotos: { src: string; lbl: string }[]) => {
       if (cardsNaPagina === 2) {
         doc.addPage()
         page++
@@ -584,7 +584,7 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
         cardsNaPagina = 0
       }
 
-      const evH = 8 + (ev.foto1 || ev.foto2 ? evFotoH + 14 : 0)
+      const evH = 8 + (fotos.length > 0 ? evFotoH + 14 : 0)
 
       // Card da evidência
       doc.setFillColor(...CGB.white)
@@ -595,19 +595,14 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
       doc.setFillColor(...CGB.main)
       doc.roundedRect(MX, y, 3, evH, 1, 1, 'F')
 
-      // Número da evidência
+      // Título do card
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(7.5)
       doc.setTextColor(...CGB.dark)
-      doc.text(`EVIDÊNCIA ${idx + 1}`, MX + 7, y + 5.5)
+      doc.text(titulo, MX + 7, y + 5.5)
       const iy = y + 10
 
-      const evFotos = [
-        { src: ev.foto1, lbl: ev.descricao || 'FOTO 1' },
-        { src: ev.foto2, lbl: ev.descricao2 || 'FOTO 2' },
-      ].filter((f): f is { src: string; lbl: string } => !!f.src)
-
-      for (const [fi, { src, lbl }] of evFotos.entries()) {
+      for (const [fi, { src, lbl }] of fotos.entries()) {
         const fx = MX + 7 + fi * (evFotoW + 4)
 
         doc.setFillColor(...CGB.faint)
@@ -624,6 +619,23 @@ export async function exportarPDF(form: FormularioEME, mode?: 'blob'): Promise<v
 
       y += evH + 5
       cardsNaPagina++
+    }
+
+    for (const [idx, ev] of form.evidencias.entries()) {
+      if (!ev.descricao && !ev.descricao2 && !ev.foto1 && !ev.foto2) continue
+      const evFotos = [
+        { src: ev.foto1, lbl: ev.descricao || 'FOTO 1' },
+        { src: ev.foto2, lbl: ev.descricao2 || 'FOTO 2' },
+      ].filter((f): f is { src: string; lbl: string } => !!f.src)
+      await drawEvidenciaCard(`EVIDÊNCIA ${idx + 1}`, evFotos)
+    }
+
+    if (temTrocaTransformador) {
+      const fotosTransformador = [
+        { src: form.fotoPlacaAntiga, lbl: 'FOTO DA PLACA ANTIGA' },
+        { src: form.fotoPlacaNova, lbl: 'FOTO DA PLACA NOVA' },
+      ].filter((f): f is { src: string; lbl: string } => !!f.src)
+      await drawEvidenciaCard('TROCA DE TRANSFORMADOR', fotosTransformador)
     }
   }
 

@@ -34,6 +34,11 @@ export interface FormularioEME {
   // Evidências (6 itens)
   evidencias: EvidenciaItem[]
 
+  // Troca de transformador — evidência fixa e obrigatória quando "sim"
+  trocaTransformador: '' | 'sim' | 'nao'
+  fotoPlacaAntiga: string | null
+  fotoPlacaNova: string | null
+
   // Fotos do serviço
   fotoAcionamento: string | null
   fotoSaidaBase: string | null
@@ -81,6 +86,9 @@ export const criarFormularioVazio = (): FormularioEME => ({
   horaEnergizacao: '',
   observacao: '',
   evidencias: Array.from({ length: 3 }, () => ({ descricao: '', descricao2: '', foto1: null, foto2: null })),
+  trocaTransformador: '',
+  fotoPlacaAntiga: null,
+  fotoPlacaNova: null,
   fotoAcionamento: null,
   fotoSaidaBase: null,
   fotoChegadaServico: null,

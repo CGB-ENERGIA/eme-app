@@ -126,6 +126,7 @@ export async function exportarExcel(form: FormularioEME): Promise<void> {
     addRow2('Início', h.horaInicio || '—', 'Fim', h.horaFim || '—')
   })
   addRow2('Houve intervalo?', form.houveIntervalo ? 'Sim' : 'Não', 'Hora Energização', form.horaEnergizacao || '—')
+  addField('Troca de Transformador?', form.trocaTransformador === 'sim' ? 'Sim' : form.trocaTransformador === 'nao' ? 'Não' : '—')
 
   // Section: Observação
   if (form.observacao) {
@@ -175,6 +176,10 @@ export async function exportarExcel(form: FormularioEME): Promise<void> {
       { label: ev.descricao2 || `Evidência ${i + 1} — Foto 2`, src: ev.foto2 },
     ]),
     { label: 'Chegada da equipe na base pós atendimento', src: form.fotoChegadaBasePosAtendimento },
+    ...(form.trocaTransformador === 'sim' ? [
+      { label: 'Foto da Placa Antiga', src: form.fotoPlacaAntiga },
+      { label: 'Foto da Placa Nova', src: form.fotoPlacaNova },
+    ] : []),
   ]
   for (const f of fotosServico) {
     if (!f.src) continue
