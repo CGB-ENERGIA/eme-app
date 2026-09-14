@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
-import { Camera, Upload, X, Loader2, Clipboard } from 'lucide-react'
+import { Camera, Upload, X, Loader2, Clipboard, ZoomIn } from 'lucide-react'
 import CameraCapture, { captureViaNativeInput } from './CameraCapture'
 import { processGalleryPhoto, getBestCoordinates, isCameraSupported, type PhotoCoords } from '../../utils/stampImage'
 
@@ -25,6 +25,7 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
   const [cameraOpen, setCameraOpen] = useState(false)
   const [showSugg, setShowSugg] = useState(false)
   const [descError, setDescError] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   // Ref para sempre chamar a versão mais recente do onChange (evita stale closure no handlePaste)
   const onChangeRef = useRef(onChange)
@@ -185,7 +186,18 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
 
       {value ? (
         <div className={`relative rounded-xl overflow-hidden border bg-slate-50 dark:bg-slate-700 ${small ? 'h-32 lg:h-36' : 'h-44 lg:h-52'} ${hasError ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'}`}>
-          <img src={value} alt={label} className="w-full h-full object-contain bg-black" />
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            className="w-full h-full block cursor-zoom-in"
+            aria-label="Ampliar foto"
+          >
+            <img src={value} alt={label} className="w-full h-full object-contain bg-black" />
+          </button>
+          <span className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold text-white pointer-events-none"
+            style={{ background: 'rgba(0,0,0,0.55)' }}>
+            <ZoomIn size={11} /> Ampliar
+          </span>
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -267,6 +279,28 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
         onChange={(e) => handleFile(e.target.files?.[0] ?? null, true)} />
       <input ref={fileRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0] ?? null, false)} />
+
+      {lightboxOpen && value && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition"
+            aria-label="Fechar"
+          >
+            <X size={22} />
+          </button>
+          <img
+            src={value}
+            alt={label}
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }
