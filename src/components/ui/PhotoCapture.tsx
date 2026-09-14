@@ -39,6 +39,11 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
     return true
   }
 
+  // Ref para handlePaste (useCallback com deps []) sempre chamar a checagem atual —
+  // evita ficar preso no `label` da primeira renderização.
+  const requireDescRef = useRef(requireDesc)
+  requireDescRef.current = requireDesc
+
   const openCamera = () => {
     if (!requireDesc()) return
     geoPrefetch.current = getBestCoordinates()
@@ -72,10 +77,12 @@ export default function PhotoCapture({ label, onLabelChange, labelSuggestions, v
     const imageItem = items.find(item => item.type.startsWith('image/'))
     if (!imageItem) return
     e.preventDefault?.()
+    if (!requireDescRef.current()) return
     const file = imageItem.getAsFile()
     if (!file) return
     await handleFile(file, false)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps — handleFile usa onChangeRef.current (sempre atualizado)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleFile usa onChangeRef.current (sempre atualizado)
+  }, [])
 
   const colarDoClipboard = async () => {
     if (!requireDesc()) return
