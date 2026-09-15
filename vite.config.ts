@@ -23,10 +23,12 @@ export default defineConfig({
         scope: '/',
         categories: ['business', 'productivity'],
         lang: 'pt-BR',
+        // Sem purpose "maskable": Android sintetiza um fundo (theme_color) atrás
+        // dela, criando um halo colorido que não é nossa marca. Só "any" — mostra
+        // o ícone real, sem nada adicionado por cima.
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
