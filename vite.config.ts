@@ -16,7 +16,9 @@ export default defineConfig({
         short_name: 'EME',
         description: 'Formulário de Atendimento Emergencial CGB Energia',
         theme_color: '#9B003C',
-        background_color: '#9B003C',
+        // Fundo da splash nativa do Android ao abrir o PWA instalado (antes do
+        // nosso HTML carregar) — usa o escuro do app, não o vermelho de marca.
+        background_color: '#0d0f16',
         display: 'standalone',
         orientation: 'any',
         start_url: '/solicitacoes',
