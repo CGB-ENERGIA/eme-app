@@ -3,6 +3,7 @@ import Lista from './pages/Lista'
 import Formulario from './pages/Formulario'
 import Acionamento from './pages/Acionamento'
 import Solicitacoes from './pages/Solicitacoes'
+import Analytics from './pages/Analytics'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { SidebarProvider } from './contexts/SidebarContext'
 import { RoleProvider } from './contexts/RoleContext'
@@ -23,6 +24,10 @@ export default function App() {
 
           {/* Formulários: solicitante e equipe de campo */}
           <Route path="/formularios" element={<Lista />} />
+          <Route path="/lista" element={<Lista />} />
+
+          {/* Analytics dashboard */}
+          <Route path="/analytics" element={<Analytics />} />
 
           {/* Só quem solicita — equipe de campo (link) não acessa */}
           <Route path="/solicitacoes" element={<SolicitanteOnly><Solicitacoes /></SolicitanteOnly>} />

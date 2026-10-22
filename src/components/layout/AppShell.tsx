@@ -111,7 +111,7 @@ function usePendingSync() {
   return { pendentes, sincronizando, sincronizarAgora }
 }
 
-export type AppPage = 'lista' | 'formulario' | 'acionamento' | 'solicitacoes'
+export type AppPage = 'lista' | 'formulario' | 'acionamento' | 'solicitacoes' | 'analytics'
 
 interface Props {
   page: AppPage

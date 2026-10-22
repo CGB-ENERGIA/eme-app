@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Zap, Search, X, Share2, Copy, Check, Link, Pencil, RefreshCw } from 'lucide-react'
+import { Plus, FileText, Trash2, CheckCircle, Clock, ChevronRight, FileDown, Loader2, Zap, Search, X, Share2, Copy, Check, Link, Pencil, RefreshCw, BarChart3 } from 'lucide-react'
 import { listarFormularios, excluirFormulario, sincronizarDeSupabase, sincronizarTudo, sincronizarFormularioAgora } from '../store/db'
 import type { FormularioEME } from '../types/eme'
 import { criarFormularioVazio } from '../types/eme'
@@ -236,17 +236,29 @@ export default function Lista() {
               <h1 className="text-light-sweep font-black text-2xl sm:text-3xl lg:text-5xl leading-tight tracking-widest uppercase">
                 Emergencial
               </h1>
-              <button
-                type="button"
-                onClick={sincronizar}
-                disabled={sincronizando}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }}
-                title="Sincronizar"
-              >
-                <RefreshCw size={13} className={sincronizando ? 'animate-spin' : ''} />
-                <span className="hidden sm:inline">{sincronizando ? 'Sincronizando…' : 'Sincronizar'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/analytics')}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }}
+                  title="Dashboard de utilização"
+                >
+                  <BarChart3 size={13} />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={sincronizar}
+                  disabled={sincronizando}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.09)' }}
+                  title="Sincronizar"
+                >
+                  <RefreshCw size={13} className={sincronizando ? 'animate-spin' : ''} />
+                  <span className="hidden sm:inline">{sincronizando ? 'Sincronizando…' : 'Sincronizar'}</span>
+                </button>
+              </div>
             </div>
             <p className="text-xs sm:text-sm lg:text-base mb-5 sm:mb-6 lg:mb-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
               Edite, compartilhe o link ou gere o PDF novamente

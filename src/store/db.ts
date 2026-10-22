@@ -349,6 +349,34 @@ export async function excluirFormulario(id: string): Promise<void> {
   )
 }
 
+const LIMPEZA_FLAG = 'eme-limpeza-periodo-ate-2026-10-05'
+
+/** Remove localmente formulários com data de Período até `limite` (ISO yyyy-mm-dd). Itens sem data são mantidos. */
+async function apagarFormulariosAte(limite: string): Promise<number> {
+  const db = await getDB()
+  const alvos = (await db.getAll('formularios')).filter((f) => f.dataInicio && f.dataInicio <= limite)
+  const tx = db.transaction('formularios', 'readwrite')
+  await Promise.all(alvos.map((f) => tx.store.delete(f.id)))
+  await tx.done
+  if (alvos.length > 0) notifyPendingChanged()
+  return alvos.length
+}
+
+/** Limpeza única por aparelho: remove os formulários de Período até 05/10/2026 que ficaram no IndexedDB. */
+export async function limparFormulariosAntigosUmaVez(): Promise<void> {
+  try {
+    if (localStorage.getItem(LIMPEZA_FLAG)) return
+  } catch {
+    return
+  }
+  try {
+    await apagarFormulariosAte('2026-10-05')
+    localStorage.setItem(LIMPEZA_FLAG, '1')
+  } catch (error) {
+    logError(error, { scope: 'db', action: 'limpeza-formularios-antigos' })
+  }
+}
+
 // ── Acionamentos ─────────────────────────────────────────────
 
 export async function salvarAcionamento(record: AcionamentoRecord): Promise<void> {
