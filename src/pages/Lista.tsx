@@ -139,7 +139,7 @@ export default function Lista() {
   const excluir = async (id: string) => {
     await excluirFormulario(id)
     setExcluindo(null)
-    carregar()
+    setFormularios((prev) => prev.filter((f) => f.id !== id))
   }
 
   const gerarPDF = async (e: React.MouseEvent, form: FormularioEME) => {
